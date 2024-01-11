@@ -11,7 +11,6 @@
 
 
 constexpr uint16_t stack_high_addr{ 0x10 };
-constexpr uint16_t program_starting_point{ 0x00};
 constexpr uint8_t bytes_read_per_opcode{ 2 };
 constexpr uint8_t opcode_hex_bit{ 1 };
 constexpr uint8_t sprite_width{ 8 };
@@ -36,10 +35,17 @@ struct CPU {
 	std::optional<std::stringstream> dump_current_instruction() const;
 	std::stringstream dump_source(std::optional<uint16_t> size) const;
 
-	void DISPLAY_SPRITE();
-	void JUMP();
-	void SET_REGISTER();
-	void ADD_IMM();
+	void DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void JUMP(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void JUMP_V0(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SET_REGISTER(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void ADD_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SET_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SKIP_NEXT_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SKIP_NEXT_NOT_EQUAL_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 };
 
 

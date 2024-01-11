@@ -19,6 +19,13 @@ static bool bit_test(uint8_t flags, uint8_t mask) {
 static uint8_t get_hex_nth_digit(uint8_t hex, uint8_t nth_digit) {
 	return (hex >> (nth_digit << 2)) & 0xf;
 }
+static uint8_t lower_nibble(uint8_t data) {
+	return get_hex_nth_digit(data, 0);
+}
+static uint8_t higher_nibble(uint8_t data) {
+	return get_hex_nth_digit(data, 1);
+}
+
 template<std::size_t N>
 static std::bitset<N> reverse_bitset(std::bitset<N> b) {
 	for (std::size_t i = 0; i < N / 2; ++i) {

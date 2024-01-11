@@ -32,9 +32,6 @@
     <ClInclude Include="SplitString.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="main.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NumberSystemUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>

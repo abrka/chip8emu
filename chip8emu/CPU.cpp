@@ -36,22 +36,42 @@ void CPU::reset()
 void CPU::advance()
 {
 
-	uint8_t opcode = connected_bus->rom.at(pc);
+	uint8_t opcode_first_byte = connected_bus->rom.at(pc);
+	uint8_t opcode_second_byte = connected_bus->rom.at(pc + 1);
 
-	if (get_hex_nth_digit(opcode, opcode_hex_bit) == 0xD) {
-		DISPLAY_SPRITE();
+	if (higher_nibble(opcode_first_byte) == 0xD) {
+		DISPLAY_SPRITE(opcode_first_byte, opcode_second_byte);
 	}
-	else if (get_hex_nth_digit(opcode, opcode_hex_bit) == 0x1) {
-		JUMP();
+	else if (higher_nibble(opcode_first_byte) == 0x1) {
+		JUMP(opcode_first_byte, opcode_second_byte);
 	}
-	else if (get_hex_nth_digit(opcode, opcode_hex_bit) == 0x6) {
-		SET_REGISTER();
+	else if (higher_nibble(opcode_first_byte) == 0x6) {
+		SET_REGISTER(opcode_first_byte, opcode_second_byte);
 	}
-	else if (get_hex_nth_digit(opcode, opcode_hex_bit) == 0x7) {
-		ADD_IMM();
+	else if (higher_nibble(opcode_first_byte) == 0x7) {
+		ADD_IMM(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0x5) {
+		SKIP_NEXT(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0xA) {
+		SET_I(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0x3) {
+		SKIP_NEXT_IMM(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x2) ){
+		AND_REG(opcode_first_byte, opcode_second_byte);
+	}
+	else if (opcode_first_byte == 0x00 and opcode_second_byte == 0xE0) {
+		CLEAR_DISPLAY(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0x0) {
+
 	}
 	else {
-		std::cout << "opcode: " << (int)opcode << std::endl;
+		uint16_t full_opcode = TwoByteToOneWord(opcode_second_byte, opcode_first_byte);
+		std::cout << "opcode: " << std::hex << full_opcode << std::endl;
 		assert(false && "opcode not supported");
 	}
 	pc += bytes_read_per_opcode;
@@ -124,10 +144,10 @@ std::stringstream CPU::dump_source(std::optional<uint16_t> size = {}) const
 	return output;
 }
 
-void CPU::DISPLAY_SPRITE()
+void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	uint8_t instruction_byte_start = connected_bus->read_rom(pc);
-	uint8_t instruction_byte_end = connected_bus->read_rom(pc + 1);
+	uint8_t instruction_byte_start = opcode_first_byte;
+	uint8_t instruction_byte_end = opcode_second_byte;
 
 	uint8_t sprite_height = get_hex_nth_digit(instruction_byte_end, 0);
 
@@ -137,10 +157,10 @@ void CPU::DISPLAY_SPRITE()
 	uint8_t x_offset = V[x_offset_reg];
 	uint8_t y_offset = V[y_offset_reg];
 
-	for (size_t column = I; column < sprite_height; column++)
+	for (size_t y = 0; y < sprite_height; y++)
 	{
-		uint8_t pixel_y_coord = (column - I + y_offset) % chip8_screen_height;
-		std::bitset<8> row_pixels = reverse_bitset(std::bitset<8>{ connected_bus->read_ram(column) });
+		uint8_t pixel_y_coord = (y + y_offset) % chip8_screen_height;
+		std::bitset<8> row_pixels = reverse_bitset(std::bitset<8>{ connected_bus->read_rom(y + I) });
 
 
 		for (size_t x = 0; x < row_pixels.size(); x++)
@@ -163,38 +183,102 @@ void CPU::DISPLAY_SPRITE()
 	//std::cout << std::dec << "draw sprite at x:" << (unsigned int)x_offset << " y:" << (unsigned int)y_offset << " sprite height "<< (unsigned int)sprite_height << std::endl;
 }
 
-void CPU::JUMP()
+void CPU::JUMP(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 
-	uint8_t jump_address_first_two_hex = connected_bus->read_rom(pc + 1);
-	uint8_t jump_adress_last_hex = get_hex_nth_digit(connected_bus->read_rom(pc),0);
+	uint8_t jump_adress_first_hex = lower_nibble(opcode_first_byte);
 
-	uint16_t jump_adress = jump_adress_last_hex * pow(16, 2) + jump_address_first_two_hex;
+	uint16_t jump_adress = jump_adress_first_hex * pow(16, 2) + opcode_second_byte;
 
 	pc = jump_adress - bytes_read_per_opcode; //bytes per opcode needs to subtracted since it will be added in advance funciton
 
 	//std::cout << "jump 0x" << std::hex << (int)jump_adress << std::endl;
 }
 
-void CPU::SET_REGISTER()
+void CPU::JUMP_V0(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	uint8_t current_instruction_first_byte = connected_bus->read_rom(pc);
-	uint8_t current_instruction_second_byte = connected_bus->read_rom(pc + 1);
+	uint8_t jump_adress_first_hex = lower_nibble(opcode_first_byte);
 
-	uint8_t which_reg_to_set = get_hex_nth_digit(current_instruction_first_byte, 0);
-	uint8_t value = current_instruction_second_byte;
+	uint16_t jump_adress = (jump_adress_first_hex * pow(16, 2) + opcode_second_byte) + V[0];
+
+	pc = jump_adress - bytes_read_per_opcode; //bytes per opcode needs to subtracted since it will be added in advance funciton
+
+}
+
+void CPU::SET_REGISTER(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+
+	uint8_t which_reg_to_set = get_hex_nth_digit(opcode_first_byte, 0);
+	uint8_t value = opcode_second_byte;
 
 	V[which_reg_to_set] = value;
 }
 
-void CPU::ADD_IMM()
+void CPU::ADD_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	uint8_t current_instruction_first_byte = connected_bus->read_rom(pc);
-	uint8_t current_instruction_second_byte = connected_bus->read_rom(pc + 1);
 
-	uint8_t reg_to_add_to = get_hex_nth_digit(current_instruction_first_byte, 0);
-	uint8_t value = current_instruction_second_byte;
+	uint8_t reg_to_add_to = get_hex_nth_digit(opcode_first_byte, 0);
+	uint8_t value = opcode_second_byte;
 
 	V[reg_to_add_to] += value;
+}
+
+void CPU::CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	for (size_t y = 0; y < chip8_screen_height; y++)
+	{
+		for (size_t x = 0; x < chip8_screen_width; x++)
+		{
+			connected_bus->pixels[y][x] = chip8_color_unlit;
+		}
+	}
+}
+
+void CPU::SET_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+
+	uint8_t val_last_hex = get_hex_nth_digit(opcode_first_byte, 0);
+
+	uint16_t value = val_last_hex * pow(16, 2) + opcode_second_byte;
+
+	I = value;
+}
+
+void CPU::SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+
+	uint8_t VX = V[get_hex_nth_digit(opcode_first_byte, 0)];
+	uint8_t VY = V[get_hex_nth_digit(opcode_second_byte, 1)];
+
+	if (VX == VY) {
+		pc += bytes_read_per_opcode;
+	}
+}
+
+void CPU::SKIP_NEXT_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+
+	uint8_t VX = V[get_hex_nth_digit(opcode_first_byte, 0)];
+
+	if (VX == opcode_second_byte) {
+		pc += bytes_read_per_opcode;
+	}
+}
+
+void CPU::SKIP_NEXT_NOT_EQUAL_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+
+	if (VX != opcode_second_byte) {
+		pc += bytes_read_per_opcode;
+	}
+}
+
+void CPU::AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t VY = V[higher_nibble(opcode_second_byte)]; 
+
+	VX = VX & VY;
 }
 

@@ -7,7 +7,7 @@
 #include <fstream>
 #include <optional>
 
-
+constexpr uint16_t program_starting_point{ 0x200 };
 constexpr uint8_t uninitialzed_value = 0xFF;
 constexpr int chip8_screen_width = 64;
 constexpr int chip8_screen_height = 32;
@@ -74,7 +74,7 @@ struct Bus {
 
 		clear_rom();
 		uint8_t ch{};
-		int i = 0;
+		int i = program_starting_point;
 		while (file >> std::noskipws >> ch) {
 			write_rom(i, ch);
 			i++;

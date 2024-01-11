@@ -4,7 +4,6 @@
 #include <iostream>
 #include "Bus.h"
 #include "CPU.h"
-#include "main.h"
 
 // Define MAX and MIN macros
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -90,29 +89,41 @@ int main(int argc, char* argv[])
 
 	Bus* bus = new Bus{};
 	CPU cpu{ bus };
+	bool success = bus->load_binary_file_into_rom("Breakout [Carmelo Cortez, 1979].ch8");
+	if (not success) {
+		std::cout << "couldnt load file";
+		return -1;
+	}
 
-	//cpu.V[0x4] = 32;
-	bus->write_rom(0, 0x74);
-	bus->write_rom(1, 2);
+	//bus->write_rom(0, 0x00);
+	//bus->write_rom(1, 0xE0);
 
-	//cpu.V[0x3] = 15;
-	bus->write_rom(2, 0x63);
-	bus->write_rom(3, 15);
+	//bus->write_rom(2, 0x74);
+	//bus->write_rom(3, 2);
 
-
-	bus->write_rom(4, 0xD4);
-	bus->write_rom(5, 0x35);
+	////cpu.V[0x3] = 15;
+	//bus->write_rom(4, 0x63);
+	//bus->write_rom(5, 15);
 
 
-	bus->write_rom(6, 0x10);
-	bus->write_rom(7, 0x00);
+	//bus->write_rom(6, 0xD4);
+	//bus->write_rom(7, 0x35);
 
-	cpu.I = 0x0;
-	bus->write_ram(0x0, 0xF0);
-	bus->write_ram(0x1, 0x10);
-	bus->write_ram(0x2, 0x20);
-	bus->write_ram(0x3, 0x40);
-	bus->write_ram(0x4, 0x40);
+
+	//bus->write_rom(8, 0xA0);
+	//bus->write_rom(9, 0x00);
+
+	//bus->write_rom(10, 0x10);
+	//bus->write_rom(11, 0x00);
+
+
+
+	//
+	//bus->write_ram(0x0, 0xF0);
+	//bus->write_ram(0x1, 0x10);
+	//bus->write_ram(0x2, 0x20);
+	//bus->write_ram(0x3, 0x40);
+	//bus->write_ram(0x4, 0x40);
 
 
 	// Event loop exit flag
@@ -121,14 +132,13 @@ int main(int argc, char* argv[])
 	while (!quit)
 	{
 		SDL_Event e;
-
-		// Wait indefinitely for the next available event
-		SDL_WaitEvent(&e);
-
-		// User requests quit
-		if (e.type == SDL_QUIT)
+		while (SDL_PollEvent(&e) != 0)
 		{
-			quit = true;
+			//User requests quit
+			if (e.type == SDL_QUIT)
+			{
+				quit = true;
+			}
 		}
 
 		cpu.advance();
