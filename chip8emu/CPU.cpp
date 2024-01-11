@@ -44,6 +44,12 @@ void CPU::advance()
 	else if (get_hex_nth_digit(opcode, opcode_hex_bit) == 0x1) {
 		JUMP();
 	}
+	else if (get_hex_nth_digit(opcode, opcode_hex_bit) == 0x6) {
+		SET_REGISTER();
+	}
+	else if (get_hex_nth_digit(opcode, opcode_hex_bit) == 0x7) {
+		ADD_IMM();
+	}
 	else {
 		std::cout << "opcode: " << (int)opcode << std::endl;
 		assert(false && "opcode not supported");
@@ -92,7 +98,7 @@ std::optional<std::stringstream> CPU::dump_current_instruction() const
 	return output;
 }
 
-std::stringstream CPU::dump_source(std::optional<uint16_t> size) const
+std::stringstream CPU::dump_source(std::optional<uint16_t> size = {}) const
 {
 	/*std::stringstream output{};
 	for (int i =0; auto& byte : connected_bus->rom)
@@ -125,29 +131,36 @@ void CPU::DISPLAY_SPRITE()
 
 	uint8_t sprite_height = get_hex_nth_digit(instruction_byte_end, 0);
 
-	uint8_t x_coord_reg = get_hex_nth_digit(instruction_byte_start, 0);
-	uint8_t y_coord_reg = get_hex_nth_digit(instruction_byte_end, 1);
+	uint8_t x_offset_reg = get_hex_nth_digit(instruction_byte_start, 0);
+	uint8_t y_offset_reg = get_hex_nth_digit(instruction_byte_end, 1);
 
-	uint8_t x_coord = V[x_coord_reg];
-	uint8_t y_coord = V[y_coord_reg];
+	uint8_t x_offset = V[x_offset_reg];
+	uint8_t y_offset = V[y_offset_reg];
 
 	for (size_t column = I; column < sprite_height; column++)
 	{
-		uint8_t pixel_y_coord = column - I + y_coord;
+		uint8_t pixel_y_coord = (column - I + y_offset) % chip8_screen_height;
 		std::bitset<8> row_pixels = reverse_bitset(std::bitset<8>{ connected_bus->read_ram(column) });
 
 
 		for (size_t x = 0; x < row_pixels.size(); x++)
 		{
-			uint8_t pixel_x_coord = x + x_coord;
-			connected_bus->pixels[pixel_y_coord][pixel_x_coord] = row_pixels.test(x);
-		}
+			uint8_t pixel_x_coord = (x + x_offset) % chip8_screen_width;
+			chip8_color prev_color = connected_bus->pixels[pixel_y_coord][pixel_x_coord];
+			chip8_color result_color = prev_color ^ row_pixels[x];
+			connected_bus->pixels[pixel_y_coord][pixel_x_coord] = result_color;
 
-		//connected_bus->pixels[pixel_y_coord][2] = true;
-		std::cout << row_pixels << std::endl;
+			if (prev_color == chip8_color_lit and result_color == chip8_color_unlit) {
+				V[0xF] = 1;
+			}
+			else {
+				V[0xF] = 0;
+			}
+			
+		}
 		
 	}
-	std::cout << std::dec << "draw sprite at x:" << (unsigned int)x_coord << " y:" << (unsigned int)y_coord << " sprite height "<< (unsigned int)sprite_height << std::endl;
+	//std::cout << std::dec << "draw sprite at x:" << (unsigned int)x_offset << " y:" << (unsigned int)y_offset << " sprite height "<< (unsigned int)sprite_height << std::endl;
 }
 
 void CPU::JUMP()
@@ -160,6 +173,28 @@ void CPU::JUMP()
 
 	pc = jump_adress - bytes_read_per_opcode; //bytes per opcode needs to subtracted since it will be added in advance funciton
 
-	std::cout << "jump 0x" << std::hex << (int)jump_adress << std::endl;
+	//std::cout << "jump 0x" << std::hex << (int)jump_adress << std::endl;
+}
+
+void CPU::SET_REGISTER()
+{
+	uint8_t current_instruction_first_byte = connected_bus->read_rom(pc);
+	uint8_t current_instruction_second_byte = connected_bus->read_rom(pc + 1);
+
+	uint8_t which_reg_to_set = get_hex_nth_digit(current_instruction_first_byte, 0);
+	uint8_t value = current_instruction_second_byte;
+
+	V[which_reg_to_set] = value;
+}
+
+void CPU::ADD_IMM()
+{
+	uint8_t current_instruction_first_byte = connected_bus->read_rom(pc);
+	uint8_t current_instruction_second_byte = connected_bus->read_rom(pc + 1);
+
+	uint8_t reg_to_add_to = get_hex_nth_digit(current_instruction_first_byte, 0);
+	uint8_t value = current_instruction_second_byte;
+
+	V[reg_to_add_to] += value;
 }
 

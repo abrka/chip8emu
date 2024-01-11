@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Bus.h"
 #include "CPU.h"
+#include "main.h"
 
 // Define MAX and MIN macros
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -29,6 +30,7 @@ static rgba_color chip8_color_to_rgba(chip8_color col) {
 		return black;
 	}
 }
+void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer);
 
 template<typename T>
 static T map_range(T OldValue, T OldMin, T OldMax, T NewMax, T NewMin) {
@@ -88,24 +90,30 @@ int main(int argc, char* argv[])
 
 	Bus* bus = new Bus{};
 	CPU cpu{ bus };
-	
 
-	bus->write_rom(0, 0xD4);
-	bus->write_rom(1, 0x35);
-	cpu.V[0x4] = 5;
-	cpu.V[0x3] = 15;
+	//cpu.V[0x4] = 32;
+	bus->write_rom(0, 0x74);
+	bus->write_rom(1, 2);
 
-	bus->write_rom(2, 0x10);
-	bus->write_rom(3, 0x00);
+	//cpu.V[0x3] = 15;
+	bus->write_rom(2, 0x63);
+	bus->write_rom(3, 15);
+
+
+	bus->write_rom(4, 0xD4);
+	bus->write_rom(5, 0x35);
+
+
+	bus->write_rom(6, 0x10);
+	bus->write_rom(7, 0x00);
 
 	cpu.I = 0x0;
-	bus->write_ram(0x0, 0b0000'0011);
-	bus->write_ram(0x1, 0b0000'0100);
-	bus->write_ram(0x2, 0b0011'1000);
-	bus->write_ram(0x3, 0b0100'0000);
-	bus->write_ram(0x4, 0b1000'0000);
+	bus->write_ram(0x0, 0xF0);
+	bus->write_ram(0x1, 0x10);
+	bus->write_ram(0x2, 0x20);
+	bus->write_ram(0x3, 0x40);
+	bus->write_ram(0x4, 0x40);
 
-	bus->pixels[16][32] = chip8_color_lit;
 
 	// Event loop exit flag
 	bool quit = false;
@@ -131,30 +139,7 @@ int main(int argc, char* argv[])
 		// Clear screen
 		SDL_RenderClear(renderer);
 
-		for (size_t y = 0; y < chip8_screen_height; y++)
-		{
-			for (size_t x = 0; x < chip8_screen_width; x++)
-			{
-				SDL_Rect rect{};
-				rect.x = x;
-				rect.y = y;
-				rect.w = 10;
-				rect.h = 10;
-				chip8_color chip8_col = bus->pixels[y][x];
-				rgba_color rect_col = chip8_color_to_rgba(chip8_col);
-
-
-				SDL_SetRenderDrawColor(renderer, rect_col.r, rect_col.g, rect_col.b, rect_col.a);
-				SDL_RenderFillRect(renderer, &rect);
-			}
-		}
-
-		//// Set renderer color red to draw the square
-		//SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
-
-		//// Draw filled square
-		//SDL_RenderFillRect(renderer, &squareRect);
-
+		DrawChip8Pixels(bus, renderer);
 
 		// Update screen
 		SDL_RenderPresent(renderer);
@@ -171,4 +156,25 @@ int main(int argc, char* argv[])
 	SDL_Quit();
 
 	return 0;
+}
+
+void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
+{
+	for (size_t y = 0; y < chip8_screen_height; y++)
+	{
+		for (size_t x = 0; x < chip8_screen_width; x++)
+		{
+			SDL_Rect rect{};
+			rect.x = x;
+			rect.y = y;
+			rect.w = 10;
+			rect.h = 10;
+			chip8_color chip8_col = bus->pixels[y][x];
+			rgba_color rect_col = chip8_color_to_rgba(chip8_col);
+
+
+			SDL_SetRenderDrawColor(renderer, rect_col.r, rect_col.g, rect_col.b, rect_col.a);
+			SDL_RenderFillRect(renderer, &rect);
+		}
+	}
 }
