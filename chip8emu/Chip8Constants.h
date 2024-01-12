@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <map>
 #include <SDL.h>
+#include <array>
 
 constexpr uint16_t program_starting_point{ 0x200 };
 constexpr uint8_t uninitialzed_value = 0xFF;
@@ -12,6 +13,45 @@ constexpr int chip8_screen_height = 32;
 using chip8_color = bool;
 constexpr bool chip8_color_lit = true;
 constexpr bool chip8_color_unlit = false;
+
+constexpr uint16_t font_data_starting_point = 0;
+constexpr uint8_t size_of_font = 5;
+
+constexpr std::array<uint8_t, 5> chip8_font_0 = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_1 = { 0x20 ,0x60 ,0x20 ,0x20 , 0x70 };
+constexpr std::array<uint8_t, 5> chip8_font_2 = { 0xF0 ,0x10, 0xF0 ,0x80, 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_3 = { 0xF0 ,0x10, 0xF0 , 0x10 ,0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_4 = { 0x90, 0x90 ,0xF0,0x10, 0x10 };
+constexpr std::array<uint8_t, 5> chip8_font_5 = { 0xF0, 0x80, 0xF0, 0x10, 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_6 = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_7 = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_8 = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_9 = { 0xF0, 0x90 ,0xF0 ,0x10, 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_A = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_B = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_C = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_D = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_E = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+constexpr std::array<uint8_t, 5> chip8_font_F = { 0xF0, 0x90 ,0x90, 0x90 , 0xF0 };
+
+constexpr std::array chip8_fonts = {
+	chip8_font_0,
+	chip8_font_1, 
+	chip8_font_2, 
+	chip8_font_3,
+	chip8_font_4,
+	chip8_font_5,
+	chip8_font_6,
+	chip8_font_7,
+	chip8_font_8, 
+	chip8_font_9,
+	chip8_font_A, 
+	chip8_font_B,
+	chip8_font_C,
+	chip8_font_D,
+	chip8_font_E,
+	chip8_font_F };
+
 
 using chip8_keycode = uint8_t;
 static std::map<SDL_Keycode, chip8_keycode> SDL_input_to_chip8_input_map{

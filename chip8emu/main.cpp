@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 
 	Bus* bus = new Bus{};
 	CPU cpu{ bus };
-	bool success = bus->load_binary_file_into_rom("Breakout [Carmelo Cortez, 1979].ch8");
+	bool success = bus->load_binary_file_into_rom("c8_test.c8");
 	if (not success) {
 		std::cout << "couldnt load file";
 		return -1;

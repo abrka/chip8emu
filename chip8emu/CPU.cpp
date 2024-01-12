@@ -36,6 +36,13 @@ void CPU::reset()
 void CPU::advance()
 {
 
+	if (DT != 0) {
+		DT--;
+	}
+	if (ST != 0) {
+		ST--;
+	}
+
 	uint8_t opcode_first_byte = connected_bus->rom.at(pc);
 	uint8_t opcode_second_byte = connected_bus->rom.at(pc + 1);
 
@@ -53,6 +60,18 @@ void CPU::advance()
 	}
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x4)) {
 		ADD_TWO_REG(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x5)) {
+		SUB_TWO_REG(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x0)) {
+		STORE_REG_IN_REG(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x1)) {
+		OR_REG(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x3)) {
+		XOR_REG(opcode_first_byte, opcode_second_byte);
 	}
 	else if (higher_nibble(opcode_first_byte) == 0x5) {
 		SKIP_NEXT(opcode_first_byte, opcode_second_byte);
@@ -78,7 +97,7 @@ void CPU::advance()
 	else if (higher_nibble(opcode_first_byte) == 0xC) {
 		RANDOM_BYTE_AND_KK(opcode_first_byte, opcode_second_byte);
 	}
-	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x2) ){
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x2)) {
 		AND_REG(opcode_first_byte, opcode_second_byte);
 	}
 	else if (opcode_first_byte == 0x00 and opcode_second_byte == 0xE0) {
@@ -86,6 +105,15 @@ void CPU::advance()
 	}
 	else if (higher_nibble(opcode_first_byte) == 0xF and opcode_second_byte == 0x0A) {
 		WAIT_AND_LOAD_KEY(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0xF and opcode_second_byte == 0x29) {
+		SET_I_TO_LOC_OF_FONT(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0xF and opcode_second_byte == 0x18) {
+		SET_SOUND_TIMER(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0xF and opcode_second_byte == 0x15) {
+		SET_DELAY_TIMER(opcode_first_byte, opcode_second_byte);
 	}
 	else {
 		uint16_t full_opcode = TwoByteToOneWord(opcode_second_byte, opcode_first_byte);
@@ -113,7 +141,7 @@ std::stringstream CPU::dump_registers() const
 	{
 		output << "V[" << std::hex << i << "]" << " value:" << V[i] << "\n";
 	}
-	
+
 	output << "program counter " << "0x" << std::hex << (int)pc << "\n";
 	return output;
 }
@@ -191,12 +219,12 @@ void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 			if (prev_color == chip8_color_lit and result_color == chip8_color_unlit) {
 				V[0xF] = 1;
 			}
-			else {
+			/*else {
 				V[0xF] = 0;
-			}
-			
+			}*/
+
 		}
-		
+
 	}
 	//std::cout << std::dec << "draw sprite at x:" << (unsigned int)x_offset << " y:" << (unsigned int)y_offset << " sprite height "<< (unsigned int)sprite_height << std::endl;
 }
@@ -245,13 +273,26 @@ void CPU::ADD_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
-	VX = VX + VY;
-	if (VX > 0 && VY > INT_MAX - VX) {
+	if (VX > 0 && VY > std::numeric_limits<uint8_t>::max() - VX) {
 		V[0xF] = 1;
 	}
 	else {
 		V[0xF] = 0;
 	}
+	VX = VX + VY;
+}
+
+void CPU::SUB_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t VY = V[higher_nibble(opcode_second_byte)];
+	if (VX > VY) {
+		V[0xF] = 1;
+	}
+	else {
+		V[0xF] = 0;
+	}
+	VX = VX - VY;
 }
 
 void CPU::CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -321,9 +362,25 @@ void CPU::SKIP_NEXT_KEY_NOT_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_se
 void CPU::AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
-	uint8_t VY = V[higher_nibble(opcode_second_byte)]; 
+	uint8_t VY = V[higher_nibble(opcode_second_byte)];
 
 	VX = VX & VY;
+}
+
+void CPU::OR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t VY = V[higher_nibble(opcode_second_byte)];
+
+	VX = VX | VY;
+}
+
+void CPU::XOR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t VY = V[higher_nibble(opcode_second_byte)];
+
+	VX = VX ^ VY;
 }
 
 void CPU::WAIT_AND_LOAD_KEY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -350,7 +407,7 @@ void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VX_BCD = dec_to_bcd(VX);
 
-	connected_bus->write_rom(I    , get_digit(VX_BCD, 2));
+	connected_bus->write_rom(I, get_digit(VX_BCD, 2));
 	connected_bus->write_rom(I + 1, get_digit(VX_BCD, 1));
 	connected_bus->write_rom(I + 2, get_digit(VX_BCD, 0));
 }
@@ -362,5 +419,33 @@ void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byt
 	{
 		V[i] = connected_bus->read_rom(I + i);
 	}
+}
+
+void CPU::SET_I_TO_LOC_OF_FONT(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t which_font = lower_nibble(opcode_first_byte);
+	uint8_t adress_of_font = connected_bus->get_adress_of_font(which_font);
+	I = adress_of_font;
+
+	std::cout << "whcih font: " << (int)which_font << "adr " << (int)adress_of_font << std::endl;
+}
+
+void CPU::SET_SOUND_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	ST = VX;
+}
+
+void CPU::SET_DELAY_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	DT = VX;
+}
+
+void CPU::STORE_REG_IN_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[get_hex_nth_digit(opcode_first_byte, 0)];
+	uint8_t VY = V[get_hex_nth_digit(opcode_second_byte, 1)];
+	VX = VY;
 }
 

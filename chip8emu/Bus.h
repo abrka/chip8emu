@@ -20,8 +20,20 @@ struct Bus {
 
 	Bus() {
 		rom.fill(uninitialzed_value);
+		int font_data_index = font_data_starting_point;
+
+		for (const auto& font: chip8_fonts )
+		{
+			for (const uint8_t& font_data : font) {
+				rom[font_data_index] = font_data;
+				font_data_index++;
+			}
+		}
 	}
 
+	uint16_t get_adress_of_font(uint8_t which_font) const {
+		return font_data_starting_point + (which_font * size_of_font);
+	}
 
 	void clear_rom() {
 		rom.fill(uninitialzed_value);
