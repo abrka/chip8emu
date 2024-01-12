@@ -50,6 +50,8 @@ struct CPU {
 	void AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void WAIT_AND_LOAD_KEY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 };
 
 

@@ -1,6 +1,13 @@
 #pragma once
 #include <bitset>
 #include <cstdint>
+#include <math.h>
+
+static int get_digit(int number, int digit)
+{
+	return (number / ((int)pow(10, digit)) % 10);
+}
+
 
 static uint8_t bcd_to_dec(uint8_t val)
 {

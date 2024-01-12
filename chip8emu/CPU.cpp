@@ -69,6 +69,12 @@ void CPU::advance()
 	else if ((higher_nibble(opcode_first_byte) == 0xE) and (opcode_second_byte == 0xA1)) {
 		SKIP_NEXT_KEY_NOT_PRESSED(opcode_first_byte, opcode_second_byte);
 	}
+	else if ((higher_nibble(opcode_first_byte) == 0xF) and (opcode_second_byte == 0x33)) {
+		STORE_BCD(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0xF) and (opcode_second_byte == 0x65)) {
+		LOAD_REG_FROM_MEM(opcode_first_byte, opcode_second_byte);
+	}
 	else if (higher_nibble(opcode_first_byte) == 0xC) {
 		RANDOM_BYTE_AND_KK(opcode_first_byte, opcode_second_byte);
 	}
@@ -337,5 +343,24 @@ void CPU::RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_by
 	uint8_t KK = opcode_second_byte;
 
 	VX = random_value & KK;
+}
+
+void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t VX_BCD = dec_to_bcd(VX);
+
+	connected_bus->write_rom(I    , get_digit(VX_BCD, 2));
+	connected_bus->write_rom(I + 1, get_digit(VX_BCD, 1));
+	connected_bus->write_rom(I + 2, get_digit(VX_BCD, 0));
+}
+
+void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t X = V[lower_nibble(opcode_first_byte)];
+	for (uint8_t i = 0; i < X; i++)
+	{
+		V[i] = connected_bus->read_rom(I + i);
+	}
 }
 

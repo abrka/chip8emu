@@ -114,7 +114,6 @@ int main(int argc, char* argv[])
 	//bus->write_ram(0x3, 0x40);
 	//bus->write_ram(0x4, 0x40);
 
-
 	// Event loop exit flag
 	bool quit = false;
 	// Event loop
