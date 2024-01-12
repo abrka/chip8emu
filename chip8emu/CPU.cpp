@@ -60,6 +60,9 @@ void CPU::advance()
 	else if (higher_nibble(opcode_first_byte) == 0x3) {
 		SKIP_NEXT_IMM(opcode_first_byte, opcode_second_byte);
 	}
+	else if (higher_nibble(opcode_first_byte) == 0x4) {
+		SKIP_NEXT_NOT_EQUAL_IMM(opcode_first_byte, opcode_second_byte);
+	}
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x2) ){
 		AND_REG(opcode_first_byte, opcode_second_byte);
 	}
@@ -81,7 +84,7 @@ void CPU::advance()
 std::stringstream CPU::dump_core() const
 {
 	std::stringstream output{};
-	for (auto& byte : connected_bus->ram)
+	for (auto& byte : connected_bus->rom)
 	{
 		output << std::setw(4) << "0x" << std::hex << (int)byte;
 	}

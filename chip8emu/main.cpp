@@ -5,10 +5,6 @@
 #include "Bus.h"
 #include "CPU.h"
 
-// Define MAX and MIN macros
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-
 // Define screen dimensions
 static int SCREEN_WIDTH = 800;
 static int SCREEN_HEIGHT = 600;
@@ -17,9 +13,9 @@ static int SCREEN_HEIGHT = 600;
 struct rgba_color {
 	uint8_t r, g, b, a;
 };
-constexpr rgba_color neon = { 57, 255, 20, 255 };
-constexpr rgba_color black = { 0,0,0,255 };
-constexpr rgba_color white = { 255,255,255,255 };
+[[maybe_unused]] constexpr rgba_color neon = { 57, 255, 20, 255 };
+[[maybe_unused]] constexpr rgba_color black = { 0,0,0,255 };
+[[maybe_unused]] constexpr rgba_color white = { 255,255,255,255 };
 
 static rgba_color chip8_color_to_rgba(chip8_color col) {
 	if (col == true) {
@@ -36,13 +32,6 @@ static T map_range(T OldValue, T OldMin, T OldMax, T NewMax, T NewMin) {
 	return (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin;
 }
 
-static float map_chip8_width_to_window_width(float chip8_coord) {
-	return map_range(chip8_coord, 0.0f, (float)chip8_screen_width, (float)SCREEN_WIDTH, 0.0f);
-}
-
-static float map_chip8_height_to_window_height(float chip8_coord) {
-	return map_range(chip8_coord, 0.0f, (float)chip8_screen_height, (float)SCREEN_HEIGHT, 0.0f);
-}
 
 int main(int argc, char* argv[])
 {
@@ -139,6 +128,7 @@ int main(int argc, char* argv[])
 			{
 				quit = true;
 			}
+			
 		}
 
 		cpu.advance();
@@ -170,6 +160,7 @@ int main(int argc, char* argv[])
 
 void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
 {
+	
 	for (size_t y = 0; y < chip8_screen_height; y++)
 	{
 		for (size_t x = 0; x < chip8_screen_width; x++)

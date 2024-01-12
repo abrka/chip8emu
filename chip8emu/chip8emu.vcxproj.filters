@@ -35,5 +35,8 @@
     <ClInclude Include="NumberSystemUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Chip8Constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
