@@ -2,6 +2,16 @@
 #include <bitset>
 #include <cstdint>
 
+static uint8_t bcd_to_dec(uint8_t val)
+{
+	return ((val / 16 * 10) + (val % 16));
+}
+
+static uint8_t dec_to_bcd(uint8_t val)
+{
+	return ((val / 10 * 16) + (val % 10));
+}
+
 static uint16_t TwoByteToOneWord(uint8_t lsb, uint8_t msb) {
 	return (msb << 8) + lsb;
 }

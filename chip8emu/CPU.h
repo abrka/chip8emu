@@ -40,12 +40,16 @@ struct CPU {
 	void JUMP_V0(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_REGISTER(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void ADD_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void ADD_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_NOT_EQUAL_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SKIP_NEXT_KEY_NOT_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void WAIT_AND_LOAD_KEY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 };
 
 

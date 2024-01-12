@@ -123,13 +123,20 @@ int main(int argc, char* argv[])
 		SDL_Event e;
 		while (SDL_PollEvent(&e) != 0)
 		{
-			//User requests quit
+			//User requests quitf
 			if (e.type == SDL_QUIT)
 			{
 				quit = true;
 			}
-			
+			else if (e.type == SDL_KEYDOWN) {
+				
+				bus->pressed_key = SDL_input_to_chip8_input(e.key.keysym.sym);
+			}
+			else if (e.type == SDL_KEYUP) {
+				bus->pressed_key = {};
+			}
 		}
+
 
 		cpu.advance();
 

@@ -14,20 +14,20 @@
 #include <map>
 #include "Bus.h"
 #include <limits>
+#include <cstdlib>
+#include <ctime>
 
 constexpr int infinity = std::numeric_limits<int>::max();
 
 
 CPU::CPU(Bus* _connected_bus) : connected_bus{ _connected_bus }
 {
-
+	std::srand(std::time(nullptr));
 }
 
 void CPU::reset()
 {
-	for (auto& reg : V) {
-		reg = 0x00;
-	}
+	V.fill(0x0);
 	pc = program_starting_point;
 
 }
@@ -51,6 +51,9 @@ void CPU::advance()
 	else if (higher_nibble(opcode_first_byte) == 0x7) {
 		ADD_IMM(opcode_first_byte, opcode_second_byte);
 	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x4)) {
+		ADD_TWO_REG(opcode_first_byte, opcode_second_byte);
+	}
 	else if (higher_nibble(opcode_first_byte) == 0x5) {
 		SKIP_NEXT(opcode_first_byte, opcode_second_byte);
 	}
@@ -63,14 +66,20 @@ void CPU::advance()
 	else if (higher_nibble(opcode_first_byte) == 0x4) {
 		SKIP_NEXT_NOT_EQUAL_IMM(opcode_first_byte, opcode_second_byte);
 	}
+	else if ((higher_nibble(opcode_first_byte) == 0xE) and (opcode_second_byte == 0xA1)) {
+		SKIP_NEXT_KEY_NOT_PRESSED(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0xC) {
+		RANDOM_BYTE_AND_KK(opcode_first_byte, opcode_second_byte);
+	}
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x2) ){
 		AND_REG(opcode_first_byte, opcode_second_byte);
 	}
 	else if (opcode_first_byte == 0x00 and opcode_second_byte == 0xE0) {
 		CLEAR_DISPLAY(opcode_first_byte, opcode_second_byte);
 	}
-	else if (higher_nibble(opcode_first_byte) == 0x0) {
-
+	else if (higher_nibble(opcode_first_byte) == 0xF and opcode_second_byte == 0x0A) {
+		WAIT_AND_LOAD_KEY(opcode_first_byte, opcode_second_byte);
 	}
 	else {
 		uint16_t full_opcode = TwoByteToOneWord(opcode_second_byte, opcode_first_byte);
@@ -226,6 +235,19 @@ void CPU::ADD_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	V[reg_to_add_to] += value;
 }
 
+void CPU::ADD_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t VY = V[higher_nibble(opcode_second_byte)];
+	VX = VX + VY;
+	if (VX > 0 && VY > INT_MAX - VX) {
+		V[0xF] = 1;
+	}
+	else {
+		V[0xF] = 0;
+	}
+}
+
 void CPU::CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	for (size_t y = 0; y < chip8_screen_height; y++)
@@ -277,11 +299,43 @@ void CPU::SKIP_NEXT_NOT_EQUAL_IMM(uint8_t opcode_first_byte, uint8_t opcode_seco
 	}
 }
 
-void CPU::AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+void CPU::SKIP_NEXT_KEY_NOT_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+
+	if (not connected_bus->pressed_key.has_value()) {
+		pc += bytes_read_per_opcode;
+		return;
+	}
+	if (VX != connected_bus->pressed_key.value()) {
+		pc += bytes_read_per_opcode;
+	}
+}
+
+void CPU::AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VY = V[higher_nibble(opcode_second_byte)]; 
 
 	VX = VX & VY;
+}
+
+void CPU::WAIT_AND_LOAD_KEY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	if (not connected_bus->pressed_key.has_value()) {
+		pc -= bytes_read_per_opcode; //since bytes read will be added later we subtract it here. this means the pc will stay at the same value until something is pressed
+		return;
+	}
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	VX = connected_bus->pressed_key.value();
+}
+
+void CPU::RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t random_value = std::rand() % (255 + 1);
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t KK = opcode_second_byte;
+
+	VX = random_value & KK;
 }
 
