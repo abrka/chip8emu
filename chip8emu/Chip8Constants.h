@@ -10,6 +10,10 @@ constexpr uint8_t uninitialzed_value = 0xFF;
 constexpr int chip8_screen_width = 64;
 constexpr int chip8_screen_height = 32;
 
+
+constexpr uint8_t bytes_read_per_opcode{ 2 };
+constexpr uint8_t sprite_width{ 8 };
+
 using chip8_color = bool;
 constexpr bool chip8_color_lit = true;
 constexpr bool chip8_color_unlit = false;

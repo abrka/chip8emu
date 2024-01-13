@@ -11,7 +11,8 @@
 
 struct Bus {
 
-	std::array<uint8_t, 0xFFFF> rom{};
+	std::array<uint8_t, 0xFFFF> memory{};
+	std::array<uint16_t, 64>stack{};
 	std::array<std::array<chip8_color, chip8_screen_width>, chip8_screen_height> pixels{};
 	std::optional<chip8_keycode> pressed_key{};
 
@@ -19,44 +20,54 @@ struct Bus {
 	std::optional<uint16_t> program_code_size = {};
 
 	Bus() {
-		rom.fill(uninitialzed_value);
-		int font_data_index = font_data_starting_point;
-
-		for (const auto& font: chip8_fonts )
-		{
-			for (const uint8_t& font_data : font) {
-				rom[font_data_index] = font_data;
-				font_data_index++;
-			}
-		}
+		reset();
+		load_fonts_into_mem();
 	}
 
 	uint16_t get_adress_of_font(uint8_t which_font) const {
 		return font_data_starting_point + (which_font * size_of_font);
 	}
+	void load_fonts_into_mem() {
+		int font_data_index = font_data_starting_point;
 
-	void clear_rom() {
-		rom.fill(uninitialzed_value);
+		for (const auto& font : chip8_fonts)
+		{
+			for (const uint8_t& font_data : font) {
+				memory[font_data_index] = font_data;
+				font_data_index++;
+			}
+		}
+	};
+
+	void reset() {
+		memory.fill(uninitialzed_value);
+		stack.fill(uninitialzed_value);
+		pressed_key = {};
+		for (auto& column : pixels)
+		{
+			column.fill(chip8_color_unlit);
+		}
 	}
 
-	uint8_t read_rom(uint16_t addr) {
+	uint8_t read_mem(uint16_t addr) {
 
 		assert((addr >= 0x0000) and (addr < 0xFFFF) && "Address out of bounds");
 		//assert((ram.at(addr) != ram_uninitialzed_value) && "Acessed memory from read operation is unitialized");
 
-		return rom.at(addr);
+		return memory.at(addr);
 	}
 
-	void write_rom(uint16_t addr, uint8_t _data) {
+	void write_mem(uint16_t addr, uint8_t _data) {
 
+		assert(addr >= program_starting_point && "writing to reserved area");
 		assert((addr >= 0x0000) and (addr < 0xFFFF) && "Address out of bounds");
-		assert(rom.at(addr) == uninitialzed_value && "This adress is being overwritten");
-		rom.at(addr) = _data;
+		//assert(rom.at(addr) == uninitialzed_value && "This adress is being overwritten");
+		memory.at(addr) = _data;
 	}
 	
 
 	//returns if load was successful
-	bool load_binary_file_into_rom(const std::string& file_path) {
+	bool load_bin_into_mem(const std::string& file_path) {
 		
 		std::ifstream file{ file_path, std::ios::binary };
 
@@ -64,11 +75,12 @@ struct Bus {
 			return false;
 		}
 
-		clear_rom();
+		reset();
+		load_fonts_into_mem();
 		uint8_t ch{};
 		int i = program_starting_point;
 		while (file >> std::noskipws >> ch) {
-			write_rom(i, ch);
+			memory[i] = ch;
 			i++;
 		}
 		program_code_size = i;

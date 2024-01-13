@@ -10,10 +10,6 @@
 #include "NumberSystemUtils.h"
 
 
-constexpr uint16_t stack_high_addr{ 0x10 };
-constexpr uint8_t bytes_read_per_opcode{ 2 };
-constexpr uint8_t opcode_hex_bit{ 1 };
-constexpr uint8_t sprite_width{ 8 };
 
 struct CPU {
 
@@ -22,10 +18,11 @@ struct CPU {
 
 	uint16_t pc{program_starting_point};
 	uint16_t I{};
+	uint8_t stack_ptr{};
 	//general purpose registers
 	std::array<uint8_t, 16> V{};
-	uint8_t DT{};
-	uint8_t ST{};
+	uint8_t delay_timer{};
+	uint8_t sound_timer{};
 
 	CPU(Bus* _connected_bus);
 
@@ -44,9 +41,11 @@ struct CPU {
 	void ADD_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void ADD_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SUB_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SHR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SKIP_NEXT_NOT_EQUAL(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_NOT_EQUAL_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_KEY_NOT_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
@@ -61,6 +60,8 @@ struct CPU {
 	void SET_SOUND_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_DELAY_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void STORE_REG_IN_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void CALL_SUBROUTINE(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void RET_FROM_SR(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 };
 
 

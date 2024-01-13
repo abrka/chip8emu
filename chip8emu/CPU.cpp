@@ -29,6 +29,10 @@ void CPU::reset()
 {
 	V.fill(0x0);
 	pc = program_starting_point;
+	stack_ptr = 0;
+	I = 0;
+	delay_timer = 0;
+	sound_timer = 0;
 
 }
 
@@ -36,21 +40,27 @@ void CPU::reset()
 void CPU::advance()
 {
 
-	if (DT != 0) {
-		DT--;
+	if (delay_timer != 0) {
+		delay_timer--;
 	}
-	if (ST != 0) {
-		ST--;
+	if (sound_timer != 0) {
+		sound_timer--;
 	}
 
-	uint8_t opcode_first_byte = connected_bus->rom.at(pc);
-	uint8_t opcode_second_byte = connected_bus->rom.at(pc + 1);
+	uint8_t opcode_first_byte = connected_bus->memory.at(pc);
+	uint8_t opcode_second_byte = connected_bus->memory.at(pc + 1);
 
 	if (higher_nibble(opcode_first_byte) == 0xD) {
 		DISPLAY_SPRITE(opcode_first_byte, opcode_second_byte);
 	}
 	else if (higher_nibble(opcode_first_byte) == 0x1) {
 		JUMP(opcode_first_byte, opcode_second_byte);
+	}
+	else if (higher_nibble(opcode_first_byte) == 0x2) {
+		CALL_SUBROUTINE(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((opcode_first_byte == 0x00) and (opcode_second_byte == 0xEE)) {
+		RET_FROM_SR(opcode_first_byte, opcode_second_byte);
 	}
 	else if (higher_nibble(opcode_first_byte) == 0x6) {
 		SET_REGISTER(opcode_first_byte, opcode_second_byte);
@@ -64,6 +74,9 @@ void CPU::advance()
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x5)) {
 		SUB_TWO_REG(opcode_first_byte, opcode_second_byte);
 	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x6)) {
+		SHR_REG(opcode_first_byte, opcode_second_byte);
+	}
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x0)) {
 		STORE_REG_IN_REG(opcode_first_byte, opcode_second_byte);
 	}
@@ -73,11 +86,14 @@ void CPU::advance()
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x3)) {
 		XOR_REG(opcode_first_byte, opcode_second_byte);
 	}
+	else if (higher_nibble(opcode_first_byte) == 0xA) {
+		SET_I(opcode_first_byte, opcode_second_byte);
+	}
 	else if (higher_nibble(opcode_first_byte) == 0x5) {
 		SKIP_NEXT(opcode_first_byte, opcode_second_byte);
 	}
-	else if (higher_nibble(opcode_first_byte) == 0xA) {
-		SET_I(opcode_first_byte, opcode_second_byte);
+	else if (higher_nibble(opcode_first_byte) == 0x9) {
+		SKIP_NEXT_NOT_EQUAL(opcode_first_byte, opcode_second_byte);
 	}
 	else if (higher_nibble(opcode_first_byte) == 0x3) {
 		SKIP_NEXT_IMM(opcode_first_byte, opcode_second_byte);
@@ -127,7 +143,7 @@ void CPU::advance()
 std::stringstream CPU::dump_core() const
 {
 	std::stringstream output{};
-	for (auto& byte : connected_bus->rom)
+	for (auto& byte : connected_bus->memory)
 	{
 		output << std::setw(4) << "0x" << std::hex << (int)byte;
 	}
@@ -178,13 +194,13 @@ std::stringstream CPU::dump_source(std::optional<uint16_t> size = {}) const
 	return output;*/
 
 	if (size.has_value()) {
-		assert(size <= connected_bus->rom.size() && "size of data provided in dump source is bigger than the size of rom");
+		assert(size <= connected_bus->memory.size() && "size of data provided in dump source is bigger than the size of rom");
 	}
 
 	std::stringstream output{};
-	for (int i = 0; i < size.value_or(connected_bus->rom.size()); i++)
+	for (int i = 0; i < size.value_or(connected_bus->memory.size()); i++)
 	{
-		uint8_t byte = connected_bus->read_rom(i);
+		uint8_t byte = connected_bus->read_mem(i);
 		output << std::setw(4) << "0x" << std::hex << (int)byte;
 	}
 	return output;
@@ -206,7 +222,7 @@ void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	for (size_t y = 0; y < sprite_height; y++)
 	{
 		uint8_t pixel_y_coord = (y + y_offset) % chip8_screen_height;
-		std::bitset<8> row_pixels = reverse_bitset(std::bitset<8>{ connected_bus->read_rom(y + I) });
+		std::bitset<8> row_pixels = reverse_bitset(std::bitset<8>{ connected_bus->read_mem(y + I) });
 
 
 		for (size_t x = 0; x < row_pixels.size(); x++)
@@ -295,6 +311,21 @@ void CPU::SUB_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	VX = VX - VY;
 }
 
+void CPU::SHR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t& VY = V[higher_nibble(opcode_second_byte)];
+
+	uint8_t lsb_of_VX = VX & 1;
+	if (lsb_of_VX == 1) {
+		VY = 1;
+	}
+	else {
+		VY = 0;
+	}
+	VX = VX / 2;
+}
+
 void CPU::CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	for (size_t y = 0; y < chip8_screen_height; y++)
@@ -323,6 +354,16 @@ void CPU::SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t VY = V[get_hex_nth_digit(opcode_second_byte, 1)];
 
 	if (VX == VY) {
+		pc += bytes_read_per_opcode;
+	}
+}
+
+void CPU::SKIP_NEXT_NOT_EQUAL(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[get_hex_nth_digit(opcode_first_byte, 0)];
+	uint8_t VY = V[get_hex_nth_digit(opcode_second_byte, 1)];
+
+	if (VX != VY) {
 		pc += bytes_read_per_opcode;
 	}
 }
@@ -407,9 +448,9 @@ void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VX_BCD = dec_to_bcd(VX);
 
-	connected_bus->write_rom(I, get_digit(VX_BCD, 2));
-	connected_bus->write_rom(I + 1, get_digit(VX_BCD, 1));
-	connected_bus->write_rom(I + 2, get_digit(VX_BCD, 0));
+	connected_bus->write_mem(I, get_digit(VX_BCD, 2));
+	connected_bus->write_mem(I + 1, get_digit(VX_BCD, 1));
+	connected_bus->write_mem(I + 2, get_digit(VX_BCD, 0));
 }
 
 void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -417,7 +458,7 @@ void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byt
 	uint8_t X = V[lower_nibble(opcode_first_byte)];
 	for (uint8_t i = 0; i < X; i++)
 	{
-		V[i] = connected_bus->read_rom(I + i);
+		V[i] = connected_bus->read_mem(I + i);
 	}
 }
 
@@ -433,13 +474,13 @@ void CPU::SET_I_TO_LOC_OF_FONT(uint8_t opcode_first_byte, uint8_t opcode_second_
 void CPU::SET_SOUND_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
-	ST = VX;
+	sound_timer = VX;
 }
 
 void CPU::SET_DELAY_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
-	DT = VX;
+	delay_timer = VX;
 }
 
 void CPU::STORE_REG_IN_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -447,5 +488,26 @@ void CPU::STORE_REG_IN_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte
 	uint8_t& VX = V[get_hex_nth_digit(opcode_first_byte, 0)];
 	uint8_t VY = V[get_hex_nth_digit(opcode_second_byte, 1)];
 	VX = VY;
+}
+
+void CPU::CALL_SUBROUTINE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	stack_ptr++;
+	connected_bus->stack[stack_ptr] = pc;
+
+	uint8_t n = lower_nibble(opcode_first_byte);
+	uint8_t nn = opcode_second_byte;
+	uint16_t nnn = TwoByteToOneWord(nn, n);
+	pc = nnn;
+
+	std::cout << "call sbr " << std::hex << (int)nnn << std::endl;
+}
+
+void CPU::RET_FROM_SR(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint16_t top_of_stack = connected_bus->stack[stack_ptr];
+	pc = top_of_stack;
+
+	stack_ptr--;
 }
 
