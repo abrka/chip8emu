@@ -65,6 +65,9 @@ void CPU::advance()
 	else if (higher_nibble(opcode_first_byte) == 0x6) {
 		SET_REGISTER(opcode_first_byte, opcode_second_byte);
 	}
+	else if (higher_nibble(opcode_first_byte) == 0xB) {
+		JUMP_V0(opcode_first_byte, opcode_second_byte);
+	}
 	else if (higher_nibble(opcode_first_byte) == 0x7) {
 		ADD_IMM(opcode_first_byte, opcode_second_byte);
 	}
@@ -109,6 +112,9 @@ void CPU::advance()
 	}
 	else if (higher_nibble(opcode_first_byte) == 0x4) {
 		SKIP_NEXT_NOT_EQUAL_IMM(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0xE) and (opcode_second_byte == 0x9E)) {
+		SKIP_NEXT_KEY_PRESSED(opcode_first_byte, opcode_second_byte);
 	}
 	else if ((higher_nibble(opcode_first_byte) == 0xE) and (opcode_second_byte == 0xA1)) {
 		SKIP_NEXT_KEY_NOT_PRESSED(opcode_first_byte, opcode_second_byte);
@@ -440,6 +446,19 @@ void CPU::SKIP_NEXT_NOT_EQUAL_IMM(uint8_t opcode_first_byte, uint8_t opcode_seco
 	}
 }
 
+void CPU::SKIP_NEXT_KEY_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+
+	if (not connected_bus->pressed_key.has_value()) {
+		pc += bytes_read_per_opcode;
+		return;
+	}
+	if (VX == connected_bus->pressed_key.value()) {
+		pc += bytes_read_per_opcode;
+	}
+}
+
 void CPU::SKIP_NEXT_KEY_NOT_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
@@ -541,7 +560,7 @@ void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 
 void CPU::SAVE_REG_TO_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	uint8_t X = opcode_first_byte & 1;
+	uint8_t X = lower_nibble(opcode_first_byte);
 	for (uint8_t i = 0; i <= X; i++)
 	{
 		connected_bus->write_mem(I + i, V[i]);
@@ -555,14 +574,14 @@ void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byt
 	{
 		V[i] = connected_bus->read_mem(I + i);
 	}
-	if (I == 0x3e8) {
-		std::cout << "x is" << (int)X << std::endl;
-		std::cout << (int)V[0x2] << std::endl;
-		std::cout << (int)connected_bus->read_mem(I + 0) << std::endl;
-		std::cout << (int)connected_bus->read_mem(I + 1) << std::endl;
-		std::cout << (int)connected_bus->read_mem(I + 2)<< std::endl;
-		std::cout << "load from mem \n";
-	}
+	
+	std::cout << "x is" << (int)X << std::endl;
+	std::cout << (int)V[0x2] << std::endl;
+	std::cout << (int)connected_bus->read_mem(I + 0) << std::endl;
+	std::cout << (int)connected_bus->read_mem(I + 1) << std::endl;
+	std::cout << (int)connected_bus->read_mem(I + 2)<< std::endl;
+	std::cout << "load from mem \n";
+	
 	
 }
 

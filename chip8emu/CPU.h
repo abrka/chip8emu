@@ -51,6 +51,7 @@ struct CPU {
 	void SKIP_NEXT_NOT_EQUAL(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_NOT_EQUAL_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SKIP_NEXT_KEY_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_KEY_NOT_PRESSED(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void OR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
