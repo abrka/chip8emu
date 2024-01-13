@@ -95,6 +95,9 @@ void CPU::advance()
 	else if (higher_nibble(opcode_first_byte) == 0xA) {
 		SET_I(opcode_first_byte, opcode_second_byte);
 	}
+	else if ((higher_nibble(opcode_first_byte) == 0xF) and (opcode_second_byte == 0x1E)) {
+		ADD_I(opcode_first_byte, opcode_second_byte);
+	}
 	else if (higher_nibble(opcode_first_byte) == 0x5) {
 		SKIP_NEXT(opcode_first_byte, opcode_second_byte);
 	}
@@ -112,6 +115,9 @@ void CPU::advance()
 	}
 	else if ((higher_nibble(opcode_first_byte) == 0xF) and (opcode_second_byte == 0x33)) {
 		STORE_BCD(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0xF) and (opcode_second_byte == 0x55)) {
+		SAVE_REG_TO_MEM(opcode_first_byte, opcode_second_byte);
 	}
 	else if ((higher_nibble(opcode_first_byte) == 0xF) and (opcode_second_byte == 0x65)) {
 		LOAD_REG_FROM_MEM(opcode_first_byte, opcode_second_byte);
@@ -137,10 +143,13 @@ void CPU::advance()
 	else if (higher_nibble(opcode_first_byte) == 0xF and opcode_second_byte == 0x15) {
 		SET_DELAY_TIMER(opcode_first_byte, opcode_second_byte);
 	}
+	else if (higher_nibble(opcode_first_byte) == 0xF and opcode_second_byte == 0x07) {
+		SET_VX_TO_DELAY_TIMER(opcode_first_byte, opcode_second_byte);
+	}
 	else {
 		uint16_t full_opcode = TwoByteToOneWord(opcode_second_byte, opcode_first_byte);
 		std::cout << "opcode: " << std::hex << full_opcode << std::endl;
-		//assert(false && "opcode not supported");
+		assert(false && "opcode not supported");
 	}
 	pc += bytes_read_per_opcode;
 
@@ -241,9 +250,9 @@ void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 			if (prev_color == chip8_color_lit and result_color == chip8_color_unlit) {
 				V[0xF] = 1;
 			}
-			/*else {
+			else {
 				V[0xF] = 0;
-			}*/
+			}
 
 		}
 
@@ -295,55 +304,73 @@ void CPU::ADD_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
-	if (VX > 0 && VY > std::numeric_limits<uint8_t>::max() - VX) {
+	VX = VX + VY;
+	if (VX < VY) {
 		V[0xF] = 1;
 	}
 	else {
 		V[0xF] = 0;
 	}
-	VX = VX + VY;
 }
 
 void CPU::SUB_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t prev_VX = VX;
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
-	if (VX >= VY) {
-		V[0xF] = 1;
-	}
-	else {
+
+	VX -= VY;
+
+	if (VX > prev_VX) {
 		V[0xF] = 0;
 	}
-	VX = VX - VY;
+	else {
+		V[0xF] = 1;
+	}
+
+
 }
 
 void CPU::SUB_TWO_REG_FLIPPED(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
-	if (VY >= VX) {
+
+
+	VX = VY - VX;
+
+	if (VY > VX) {
 		V[0xF] = 1;
 	}
 	else {
 		V[0xF] = 0;
 	}
-	VX = VY - VX ;
+
+
 }
 
 void CPU::SHR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t lsb_of_VX = VX & 1;
 	uint8_t& VY = V[higher_nibble(opcode_second_byte)];
 
 	VX >>= 1;
+
+	V[0xF] = lsb_of_VX;
+
+
 }
 
 void CPU::SHL_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t msb_of_VX = (VX >> 7) & 1;
 	uint8_t& VY = V[higher_nibble(opcode_second_byte)];
 
 	VX <<= 1;
+
+	V[0xF] = msb_of_VX;
 }
 
 void CPU::CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -365,6 +392,12 @@ void CPU::SET_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint16_t value = val_last_hex * pow(16, 2) + opcode_second_byte;
 
 	I = value;
+}
+
+void CPU::ADD_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	I += VX;
 }
 
 void CPU::SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -465,12 +498,33 @@ void CPU::RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_by
 
 void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
+	/*
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VX_BCD = dec_to_bcd(VX);
 
 	connected_bus->write_mem(I, get_digit(VX_BCD, 2));
 	connected_bus->write_mem(I + 1, get_digit(VX_BCD, 1));
 	connected_bus->write_mem(I + 2, get_digit(VX_BCD, 0));
+	*/
+
+	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t hundreds_digit = VX / 100;
+	uint8_t tens_digit = (VX / 10) % 10;
+	uint8_t ones_digit = (VX % 100) % 10;
+
+	connected_bus->write_mem(I, hundreds_digit);
+	connected_bus->write_mem(I + 1, tens_digit);
+	connected_bus->write_mem(I + 2, ones_digit);
+
+}
+
+void CPU::SAVE_REG_TO_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t X = opcode_first_byte & 1;
+	for (uint8_t i = 0; i <= X; i++)
+	{
+		connected_bus->write_mem(I + i, V[i]);
+	}
 }
 
 void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -501,6 +555,13 @@ void CPU::SET_DELAY_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t VX = V[lower_nibble(opcode_first_byte)];
 	delay_timer = VX;
+}
+
+void CPU::SET_VX_TO_DELAY_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	VX = delay_timer;
+
 }
 
 void CPU::STORE_REG_IN_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)

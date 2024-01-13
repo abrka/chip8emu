@@ -46,6 +46,7 @@ struct CPU {
 	void SHL_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void ADD_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_NOT_EQUAL(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
@@ -57,10 +58,12 @@ struct CPU {
 	void WAIT_AND_LOAD_KEY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SAVE_REG_TO_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_I_TO_LOC_OF_FONT(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_SOUND_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_DELAY_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SET_VX_TO_DELAY_TIMER(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void STORE_REG_IN_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void CALL_SUBROUTINE(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void RET_FROM_SR(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
