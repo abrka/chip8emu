@@ -41,7 +41,9 @@ struct CPU {
 	void ADD_IMM(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void ADD_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SUB_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SUB_TWO_REG_FLIPPED(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SHR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
+	void SHL_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SET_I(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void SKIP_NEXT(uint8_t opcode_first_byte, uint8_t opcode_second_byte);

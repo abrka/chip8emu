@@ -74,8 +74,14 @@ void CPU::advance()
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x5)) {
 		SUB_TWO_REG(opcode_first_byte, opcode_second_byte);
 	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x7)) {
+		SUB_TWO_REG_FLIPPED(opcode_first_byte, opcode_second_byte);
+	}
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x6)) {
 		SHR_REG(opcode_first_byte, opcode_second_byte);
+	}
+	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0xE)) {
+		SHL_REG(opcode_first_byte, opcode_second_byte);
 	}
 	else if ((higher_nibble(opcode_first_byte) == 0x8) and (lower_nibble(opcode_second_byte) == 0x0)) {
 		STORE_REG_IN_REG(opcode_first_byte, opcode_second_byte);
@@ -134,7 +140,7 @@ void CPU::advance()
 	else {
 		uint16_t full_opcode = TwoByteToOneWord(opcode_second_byte, opcode_first_byte);
 		std::cout << "opcode: " << std::hex << full_opcode << std::endl;
-		assert(false && "opcode not supported");
+		//assert(false && "opcode not supported");
 	}
 	pc += bytes_read_per_opcode;
 
@@ -302,7 +308,7 @@ void CPU::SUB_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
-	if (VX > VY) {
+	if (VX >= VY) {
 		V[0xF] = 1;
 	}
 	else {
@@ -311,19 +317,33 @@ void CPU::SUB_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	VX = VX - VY;
 }
 
+void CPU::SUB_TWO_REG_FLIPPED(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t VY = V[higher_nibble(opcode_second_byte)];
+	if (VY >= VX) {
+		V[0xF] = 1;
+	}
+	else {
+		V[0xF] = 0;
+	}
+	VX = VY - VX ;
+}
+
 void CPU::SHR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t& VY = V[higher_nibble(opcode_second_byte)];
 
-	uint8_t lsb_of_VX = VX & 1;
-	if (lsb_of_VX == 1) {
-		VY = 1;
-	}
-	else {
-		VY = 0;
-	}
-	VX = VX / 2;
+	VX >>= 1;
+}
+
+void CPU::SHL_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
+{
+	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
+	uint8_t& VY = V[higher_nibble(opcode_second_byte)];
+
+	VX <<= 1;
 }
 
 void CPU::CLEAR_DISPLAY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -455,8 +475,8 @@ void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 
 void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	uint8_t X = V[lower_nibble(opcode_first_byte)];
-	for (uint8_t i = 0; i < X; i++)
+	uint8_t X = opcode_first_byte & 1;
+	for (uint8_t i = 0; i <= X; i++)
 	{
 		V[i] = connected_bus->read_mem(I + i);
 	}
@@ -498,9 +518,8 @@ void CPU::CALL_SUBROUTINE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t n = lower_nibble(opcode_first_byte);
 	uint8_t nn = opcode_second_byte;
 	uint16_t nnn = TwoByteToOneWord(nn, n);
-	pc = nnn;
+	pc = nnn - bytes_read_per_opcode; // bytes per opcode needs to be subtracted since it will be added in the execute function
 
-	std::cout << "call sbr " << std::hex << (int)nnn << std::endl;
 }
 
 void CPU::RET_FROM_SR(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
