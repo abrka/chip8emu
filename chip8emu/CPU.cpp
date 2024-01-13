@@ -498,24 +498,45 @@ void CPU::RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_by
 
 void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	/*
-	uint8_t VX = V[lower_nibble(opcode_first_byte)];
-	uint8_t VX_BCD = dec_to_bcd(VX);
+	
+	uint8_t X = lower_nibble(opcode_first_byte);
+	uint8_t vX;
+	vX = V[X];
+	connected_bus->memory[I] = (vX - (vX % 100)) / 100;
+	vX -= connected_bus->memory[I] * 100;
+	connected_bus->memory[I + 1] = (vX - (vX % 10)) / 10;
+	vX -= connected_bus->memory[I + 1] * 10;
+	connected_bus->memory[I + 2] = vX;
 
-	connected_bus->write_mem(I, get_digit(VX_BCD, 2));
-	connected_bus->write_mem(I + 1, get_digit(VX_BCD, 1));
-	connected_bus->write_mem(I + 2, get_digit(VX_BCD, 0));
+	/*uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	
+	uint8_t hundreds_digit = get_digit(VX, 2);
+	uint8_t tens_digit = get_digit(VX, 1);
+	uint8_t ones_digit = get_digit(VX, 0);
+
+	connected_bus->write_mem(I + 0, hundreds_digit);
+	connected_bus->write_mem(I + 1, tens_digit);
+	connected_bus->write_mem(I + 2, ones_digit);
 	*/
 
-	uint8_t VX = V[lower_nibble(opcode_first_byte)];
+	/*uint8_t VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t hundreds_digit = VX / 100;
 	uint8_t tens_digit = (VX / 10) % 10;
 	uint8_t ones_digit = (VX % 100) % 10;
 
 	connected_bus->write_mem(I, hundreds_digit);
 	connected_bus->write_mem(I + 1, tens_digit);
-	connected_bus->write_mem(I + 2, ones_digit);
+	connected_bus->write_mem(I + 2, ones_digit);*/
 
+	//std::cout << std::bitset<8>{hundreds_digit} << " "<<  std::bitset<8>{tens_digit} << " "<<  std::bitset<8>{ones_digit} << std::endl;
+	std::cout << (int)V[X] << std::endl;
+	std::cout << std::hex << (int)X << std::endl;
+	std::cout << std::hex << TwoByteToOneWord(opcode_second_byte, opcode_first_byte) << std::endl;
+	std::cout << std::bitset<8>{connected_bus->memory[I]} << " " << std::bitset<8>{connected_bus->memory[I + 1]} << " " << std::bitset<8>{connected_bus->memory[I + 2]} << std::endl;
+
+	//connected_bus->memory[(I + 0) & 0xfff] = (VX % 1000) / 100;
+	//connected_bus->memory[(I + 1) & 0xfff] = (VX % 100) / 10;
+	//connected_bus->memory[(I + 2) & 0xfff] = VX % 10;
 }
 
 void CPU::SAVE_REG_TO_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -529,11 +550,20 @@ void CPU::SAVE_REG_TO_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 
 void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	uint8_t X = opcode_first_byte & 1;
+	const uint8_t X = lower_nibble(opcode_first_byte);
 	for (uint8_t i = 0; i <= X; i++)
 	{
 		V[i] = connected_bus->read_mem(I + i);
 	}
+	if (I == 0x3e8) {
+		std::cout << "x is" << (int)X << std::endl;
+		std::cout << (int)V[0x2] << std::endl;
+		std::cout << (int)connected_bus->read_mem(I + 0) << std::endl;
+		std::cout << (int)connected_bus->read_mem(I + 1) << std::endl;
+		std::cout << (int)connected_bus->read_mem(I + 2)<< std::endl;
+		std::cout << "load from mem \n";
+	}
+	
 }
 
 void CPU::SET_I_TO_LOC_OF_FONT(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
