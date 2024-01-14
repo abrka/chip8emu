@@ -4,13 +4,12 @@
 #include <SDL.h>
 #include <array>
 
+constexpr uint32_t cpu_cycles_executed_per_frame = 8;
 constexpr uint16_t program_starting_point{ 0x200 };
 constexpr uint8_t uninitialzed_value = 0xFF;
 
 constexpr int chip8_screen_width = 64;
 constexpr int chip8_screen_height = 32;
-
-
 
 constexpr uint8_t bytes_read_per_opcode{ 2 };
 constexpr uint8_t sprite_width{ 8 };

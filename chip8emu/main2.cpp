@@ -13,6 +13,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
+#include "misc/cpp/imgui_stdlib.h"
 #include <stdio.h>
 #include <SDL.h>
 #include <stdio.h>
@@ -20,16 +21,24 @@
 #include <iostream>
 #include "Bus.h"
 #include "CPU.h"
+#include <string>
 
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
 
+enum class EmulatorState {
+    Paused,
+    Running
+};
+EmulatorState emulator_state = EmulatorState::Paused;
+
 constexpr int window_width = 1280;
 constexpr int window_height = 720;
 
 static void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer);
+static void Cleanup(SDL_Renderer* renderer, SDL_Window* window);
 
 // Main code
 int main(int, char**)
@@ -96,22 +105,31 @@ int main(int, char**)
     //IM_ASSERT(font != nullptr);
 
     // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
+    bool show_demo_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     Bus* bus = new Bus{};
     CPU cpu{ bus };
-    bool success = bus->load_bin_into_mem("data/Astro Dodge [Revival Studios, 2008].ch8");
-    if (not success) {
-        std::cout << "couldnt load file";
-        return -1;
-    }
+   
 
     // Main loop
     bool done = false;
     while (!done)
     {
+        switch (emulator_state)
+        {
+        case EmulatorState::Paused:
+            break;
+        case EmulatorState::Running:
+            for (size_t cycle = 0; cycle < cpu_cycles_executed_per_frame; cycle++)
+            {
+                cpu.advance();
+            }
+        default:
+            break;
+        }
+        
+       
        
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
@@ -122,10 +140,12 @@ int main(int, char**)
         while (SDL_PollEvent(&event))
         {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT)
+            if (event.type == SDL_QUIT) {
                 done = true;
-            else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+            }
+            else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
                 done = true;
+            }
             else if (event.type == SDL_KEYDOWN) {
                 bus->pressed_key = SDL_input_to_chip8_input(event.key.keysym.sym);
             }
@@ -140,54 +160,46 @@ int main(int, char**)
         ImGui::NewFrame();
 
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
+        if (show_demo_window) {
             ImGui::ShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        }
         {
-            static float f = 0.0f;
-            static int counter = 0;
+            ImGui::Begin("Debugger");
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            static std::string filepath{};
+            static std::string error{};
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
+            ImGui::InputText("my text", &filepath);
 
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+            if (ImGui::Button("Run file")) {
+                bus->reset();
+                cpu.reset();
+                bool success = bus->load_bin_into_mem(filepath);
 
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+                if (not success) {
+                    error = "Couldnt load file";
+                    emulator_state = EmulatorState::Paused;
+                }
+                else {
+                    error = "";
+                    emulator_state = EmulatorState::Running;
+                }
+                
+            }
+            ImGui::Text(error.c_str());
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
         }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
-
-
-
-     
 
         // Rendering
         SDL_RenderClear(renderer);
 
+        //our code
         SDL_RenderSetLogicalSize(renderer, chip8_screen_width, chip8_screen_height);
-        cpu.advance();
+        
         DrawChip8Pixels(bus, renderer);
 
-
+        //imgui code
         ImGui::Render();
         int win_width{};
         int win_height{};
@@ -200,18 +212,12 @@ int main(int, char**)
     }
 
     // Cleanup
-    ImGui_ImplSDLRenderer2_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    Cleanup(renderer, window);
 
     return 0;
 }
 
-static void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
+void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
 {
 
     for (size_t y = 0; y < chip8_screen_height; y++)
@@ -231,4 +237,15 @@ static void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
             SDL_RenderFillRect(renderer, &rect);
         }
     }
+}
+
+void Cleanup(SDL_Renderer* renderer, SDL_Window* window)
+{
+    ImGui_ImplSDLRenderer2_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 }

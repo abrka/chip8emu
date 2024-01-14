@@ -154,7 +154,6 @@
     <ClCompile Include="imgui-docking\imgui_tables.cpp" />
     <ClCompile Include="imgui-docking\imgui_widgets.cpp" />
     <ClCompile Include="imgui-docking\misc\cpp\imgui_stdlib.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="main2.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,6 +171,13 @@
     <ClInclude Include="imgui-docking\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="NumberSystemUtils.h" />
     <ClInclude Include="SplitString.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgui-docking\misc\debuggers\imgui.gdb" />
+    <None Include="imgui-docking\misc\debuggers\imgui.natstepfilter" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="imgui-docking\misc\debuggers\imgui.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

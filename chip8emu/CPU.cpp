@@ -478,6 +478,8 @@ void CPU::AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
 
 	VX = VX & VY;
+
+	V[0xF] = 0;
 }
 
 void CPU::OR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -486,6 +488,8 @@ void CPU::OR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
 
 	VX = VX | VY;
+
+	V[0xF] = 0;
 }
 
 void CPU::XOR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -494,6 +498,8 @@ void CPU::XOR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
 
 	VX = VX ^ VY;
+
+	V[0xF] = 0;
 }
 
 void CPU::WAIT_AND_LOAD_KEY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
