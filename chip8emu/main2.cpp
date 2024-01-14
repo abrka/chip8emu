@@ -23,6 +23,7 @@
 #include "CPU.h"
 #include <string>
 #include "tinyfiledialogs/tinyfiledialogs.h"
+#include <sstream>
 
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
@@ -35,8 +36,12 @@ enum class EmulatorState {
 };
 EmulatorState emulator_state = EmulatorState::Paused;
 
-constexpr int window_width = 1280;
-constexpr int window_height = 720;
+static uint32_t cpu_cycles_executed_per_frame = 8;
+static bool exclude_reserved_area_when_showing_mem = true;
+
+constexpr int window_starting_width = 1280;
+constexpr int window_starting_height = 720;
+
 
 static void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer);
 static void Cleanup(SDL_Renderer* renderer, SDL_Window* window);
@@ -58,7 +63,7 @@ int main(int, char**)
 
 	// Create window with SDL_Renderer graphics context
 	SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-	SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+SDL_Renderer example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_width, window_height, window_flags);
+	SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+SDL_Renderer example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_starting_width, window_starting_height, window_flags);
 	if (window == nullptr)
 	{
 		printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -106,7 +111,7 @@ int main(int, char**)
 	//IM_ASSERT(font != nullptr);
 
 	// Our state
-	bool show_demo_window = false;
+	bool show_demo_window = true;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	Bus* bus = new Bus{};
@@ -207,7 +212,7 @@ int main(int, char**)
 				emulator_state = EmulatorState::Paused;
 			}
 
-			
+
 			if (ImGui::Button("Run")) {
 				if (is_file_loaded) {
 					emulator_state = EmulatorState::Running;
@@ -215,7 +220,7 @@ int main(int, char**)
 				else {
 					error = "file not loaded";
 				}
-				
+
 			}
 
 			if (ImGui::Button("Step")) {
@@ -226,8 +231,57 @@ int main(int, char**)
 					error = "file not loaded";
 				}
 			}
+			
 
 			ImGui::Text(error.c_str());
+
+			ImGui::End();
+		}
+		{
+			ImGui::Begin("Settings");
+
+			ImGui::InputScalar("Cycles per frame", ImGuiDataType_U32, &cpu_cycles_executed_per_frame);
+			ImGui::Checkbox("Exclude reserve area when showing mem", &exclude_reserved_area_when_showing_mem);
+
+			ImGui::End();
+		}
+
+		{
+			ImGui::Begin("Memory and Registers");
+
+
+			if (ImGui::CollapsingHeader("Registers")) {
+				ImGui::Text("PC: %s", byte_to_hex_str(cpu.pc).c_str());
+				ImGui::Text("I: %s", byte_to_hex_str(cpu.I).c_str());
+				ImGui::Text("Stack Ptr: %s", byte_to_hex_str(cpu.stack_ptr).c_str());
+				ImGui::Text("Delay Timer: %s", byte_to_hex_str(cpu.delay_timer).c_str());
+				ImGui::Text("Sound Timer: %s", byte_to_hex_str(cpu.sound_timer).c_str());
+				for (size_t i = 0; i < cpu.V.size(); i++)
+				{
+					ImGui::Text("V[%s]: %s", byte_to_hex_str(i).c_str(), byte_to_hex_str(cpu.V[i]).c_str());
+				}
+			}
+			if (ImGui::CollapsingHeader("Keyboard")) {
+				if (bus->pressed_key.has_value()) {
+					ImGui::Text("Pressed Key: %s", byte_to_hex_str(bus->pressed_key.value()).c_str());
+				}
+				else {
+					ImGui::Text("Pressed Key: %s", "None");
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Stack")) {
+				ImGui::TextWrapped(cpu.dump_stack().str().c_str());
+			}
+
+			if (ImGui::CollapsingHeader("Mem")) {
+				if (exclude_reserved_area_when_showing_mem) {
+					ImGui::TextWrapped("%s", cpu.dump_core_exculding_reserve(20).str().c_str());
+				}
+				else {
+					ImGui::TextWrapped("%s", cpu.dump_core(20).str().c_str());
+				}
+			}
 
 			ImGui::End();
 		}
@@ -257,6 +311,8 @@ int main(int, char**)
 
 	return 0;
 }
+
+
 
 void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
 {

@@ -11,7 +11,7 @@
 
 struct Bus {
 
-	std::array<uint8_t, 0xFFFF> memory{};
+	std::array<uint8_t, size_of_mem> memory{};
 	std::array<uint16_t, 64>stack{};
 	std::array<std::array<chip8_color, chip8_screen_width>, chip8_screen_height> pixels{};
 	std::optional<chip8_keycode> pressed_key{};

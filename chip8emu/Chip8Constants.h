@@ -3,11 +3,14 @@
 #include <map>
 #include <SDL.h>
 #include <array>
+#include <string>
+#include <sstream>
 
 static char const* chip8_file_extensions[2] = { "*.ch8", "*.c8" };
 
-constexpr uint32_t cpu_cycles_executed_per_frame = 8;
+
 constexpr uint16_t program_starting_point{ 0x200 };
+constexpr uint32_t size_of_mem{ 4096 };
 constexpr uint8_t uninitialzed_value = 0xFF;
 
 constexpr int chip8_screen_width = 64;
@@ -92,3 +95,8 @@ static std::optional<chip8_keycode> SDL_input_to_chip8_input(SDL_Keycode key) {
 	}
 };
 
+static std::string byte_to_hex_str(uint8_t byte) {
+	std::stringstream s;
+	s << "0x" << std::hex << (int)byte;
+	return s.str();
+}

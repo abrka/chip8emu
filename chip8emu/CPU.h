@@ -29,10 +29,12 @@ struct CPU {
 	void reset();
 	void advance();
 
-	std::stringstream dump_core() const;
-	std::stringstream dump_registers() const;
+	std::stringstream dump_core(uint32_t count ) const;
+	std::stringstream dump_core_exculding_reserve(uint32_t count ) const;
+	std::stringstream dump_stack() const;
+	/*std::stringstream dump_registers() const;
 	std::optional<std::stringstream> dump_current_instruction() const;
-	std::stringstream dump_source(std::optional<uint16_t> size) const;
+	std::stringstream dump_source(std::optional<uint16_t> size) const;*/
 
 	void DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void JUMP(uint8_t opcode_first_byte, uint8_t opcode_second_byte);

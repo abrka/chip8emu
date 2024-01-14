@@ -8,16 +8,14 @@
 #include <string>
 #include <sstream>
 #include <cassert>
-#include <fstream>
 #include <algorithm>
 #include <iterator>
 #include <map>
 #include "Bus.h"
-#include <limits>
 #include <cstdlib>
 #include <ctime>
+#include <format>
 
-constexpr int infinity = std::numeric_limits<int>::max();
 
 
 CPU::CPU(Bus* _connected_bus) : connected_bus{ _connected_bus }
@@ -161,71 +159,93 @@ void CPU::advance()
 
 }
 
-std::stringstream CPU::dump_core() const
+std::stringstream CPU::dump_core(uint32_t count) const
 {
 	std::stringstream output{};
-	for (auto& byte : connected_bus->memory)
+	for (size_t i = 0; i < count; i++)
 	{
-		output << std::setw(4) << "0x" << std::hex << (int)byte;
+		output << std::format("0x{:02x}  ", connected_bus->memory[i]);
 	}
 	return output;
 }
 
-std::stringstream CPU::dump_registers() const
+std::stringstream CPU::dump_core_exculding_reserve(uint32_t count) const
 {
 	std::stringstream output{};
-	for (size_t i = 0; i < V.size(); i++)
+	
+	for (size_t i = program_starting_point; i < count; i++)
 	{
-		output << "V[" << std::hex << i << "]" << " value:" << V[i] << "\n";
+		//output << "0x" << std::hex << (int)connected_bus->memory[i] << std::setw(4);
+		output << std::format("0x{:02x}  ", connected_bus->memory[i]);
 	}
-
-	output << "program counter " << "0x" << std::hex << (int)pc << "\n";
 	return output;
 }
 
-std::optional<std::stringstream> CPU::dump_current_instruction() const
+std::stringstream CPU::dump_stack() const
 {
-
-	/*uint8_t instruction = connected_bus->rom.at(pc);
-
-	if (not operation_lookup_table.contains(instruction)) {
-		return {};
-	}
-
-	std::string insturction_name = operation_lookup_table.at(instruction).operation_name;*/
-
 	std::stringstream output{};
-	//output << "program counter: " << "0x" << std::hex << (int)pc << "\n";
-	//output << "instruction: " << "0x" << std::hex << (int)instruction << " (" << insturction_name << ")" << "\n";
-
+	for (auto& byte : connected_bus->stack)
+	{
+		output << "0x" << std::hex << (int)byte << std::setw(4);
+	}
 	return output;
 }
 
-std::stringstream CPU::dump_source(std::optional<uint16_t> size = {}) const
-{
-	/*std::stringstream output{};
-	for (int i =0; auto& byte : connected_bus->rom)
-	{
-		if (not( i < size.value_or(infinity))) {
-			return output;
-		}
-		output << std::setw(4) << "0x" << std::hex << (int)byte;
-		i++;
-	}
-	return output;*/
-
-	if (size.has_value()) {
-		assert(size <= connected_bus->memory.size() && "size of data provided in dump source is bigger than the size of rom");
-	}
-
-	std::stringstream output{};
-	for (int i = 0; i < size.value_or(connected_bus->memory.size()); i++)
-	{
-		uint8_t byte = connected_bus->read_mem(i);
-		output << std::setw(4) << "0x" << std::hex << (int)byte;
-	}
-	return output;
-}
+//std::stringstream CPU::dump_registers() const
+//{
+//	std::stringstream output{};
+//	for (size_t i = 0; i < V.size(); i++)
+//	{
+//		output << "V[" << std::hex << i << "]" << " value:" << V[i] << "\n";
+//	}
+//
+//	output << "program counter " << "0x" << std::hex << (int)pc << "\n";
+//	return output;
+//}
+//
+//std::optional<std::stringstream> CPU::dump_current_instruction() const
+//{
+//
+//	/*uint8_t instruction = connected_bus->rom.at(pc);
+//
+//	if (not operation_lookup_table.contains(instruction)) {
+//		return {};
+//	}
+//
+//	std::string insturction_name = operation_lookup_table.at(instruction).operation_name;*/
+//
+//	std::stringstream output{};
+//	//output << "program counter: " << "0x" << std::hex << (int)pc << "\n";
+//	//output << "instruction: " << "0x" << std::hex << (int)instruction << " (" << insturction_name << ")" << "\n";
+//
+//	return output;
+//}
+//
+//std::stringstream CPU::dump_source(std::optional<uint16_t> size = {}) const
+//{
+//	/*std::stringstream output{};
+//	for (int i =0; auto& byte : connected_bus->rom)
+//	{
+//		if (not( i < size.value_or(infinity))) {
+//			return output;
+//		}
+//		output << std::setw(4) << "0x" << std::hex << (int)byte;
+//		i++;
+//	}
+//	return output;*/
+//
+//	if (size.has_value()) {
+//		assert(size <= connected_bus->memory.size() && "size of data provided in dump source is bigger than the size of rom");
+//	}
+//
+//	std::stringstream output{};
+//	for (int i = 0; i < size.value_or(connected_bus->memory.size()); i++)
+//	{
+//		uint8_t byte = connected_bus->read_mem(i);
+//		output << std::setw(4) << "0x" << std::hex << (int)byte;
+//	}
+//	return output;
+//}
 
 void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
