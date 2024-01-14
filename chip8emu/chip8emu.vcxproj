@@ -155,6 +155,7 @@
     <ClCompile Include="imgui-docking\imgui_widgets.cpp" />
     <ClCompile Include="imgui-docking\misc\cpp\imgui_stdlib.cpp" />
     <ClCompile Include="main2.cpp" />
+    <ClCompile Include="tinyfiledialogs\tinyfiledialogs.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h" />
@@ -171,6 +172,7 @@
     <ClInclude Include="imgui-docking\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="NumberSystemUtils.h" />
     <ClInclude Include="SplitString.h" />
+    <ClInclude Include="tinyfiledialogs\tinyfiledialogs.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="imgui-docking\misc\debuggers\imgui.gdb" />

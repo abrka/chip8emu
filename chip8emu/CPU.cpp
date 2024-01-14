@@ -479,7 +479,7 @@ void CPU::AND_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 
 	VX = VX & VY;
 
-	V[0xF] = 0;
+	//V[0xF] = 0;
 }
 
 void CPU::OR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -489,7 +489,7 @@ void CPU::OR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 
 	VX = VX | VY;
 
-	V[0xF] = 0;
+	//V[0xF] = 0;
 }
 
 void CPU::XOR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -499,7 +499,7 @@ void CPU::XOR_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 
 	VX = VX ^ VY;
 
-	V[0xF] = 0;
+	//V[0xF] = 0;
 }
 
 void CPU::WAIT_AND_LOAD_KEY(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
@@ -564,6 +564,7 @@ void CPU::SAVE_REG_TO_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	for (uint8_t i = 0; i <= X; i++)
 	{
 		connected_bus->write_mem(I + i, V[i]);
+
 	}
 }
 
@@ -573,6 +574,7 @@ void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byt
 	for (uint8_t i = 0; i <= X; i++)
 	{
 		V[i] = connected_bus->read_mem(I + i);
+		
 	}
 
 	

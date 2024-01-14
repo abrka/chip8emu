@@ -4,6 +4,8 @@
 #include <SDL.h>
 #include <array>
 
+static char const* chip8_file_extensions[2] = { "*.ch8", "*.c8" };
+
 constexpr uint32_t cpu_cycles_executed_per_frame = 8;
 constexpr uint16_t program_starting_point{ 0x200 };
 constexpr uint8_t uninitialzed_value = 0xFF;
