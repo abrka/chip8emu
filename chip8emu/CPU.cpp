@@ -547,12 +547,6 @@ void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	connected_bus->write_mem(I + 1, tens_digit);
 	connected_bus->write_mem(I + 2, ones_digit);*/
 
-	//std::cout << std::bitset<8>{hundreds_digit} << " "<<  std::bitset<8>{tens_digit} << " "<<  std::bitset<8>{ones_digit} << std::endl;
-	std::cout << (int)V[X] << std::endl;
-	std::cout << std::hex << (int)X << std::endl;
-	std::cout << std::hex << TwoByteToOneWord(opcode_second_byte, opcode_first_byte) << std::endl;
-	std::cout << std::bitset<8>{connected_bus->memory[I]} << " " << std::bitset<8>{connected_bus->memory[I + 1]} << " " << std::bitset<8>{connected_bus->memory[I + 2]} << std::endl;
-
 	//connected_bus->memory[(I + 0) & 0xfff] = (VX % 1000) / 100;
 	//connected_bus->memory[(I + 1) & 0xfff] = (VX % 100) / 10;
 	//connected_bus->memory[(I + 2) & 0xfff] = VX % 10;
@@ -574,14 +568,7 @@ void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byt
 	{
 		V[i] = connected_bus->read_mem(I + i);
 	}
-	
-	std::cout << "x is" << (int)X << std::endl;
-	std::cout << (int)V[0x2] << std::endl;
-	std::cout << (int)connected_bus->read_mem(I + 0) << std::endl;
-	std::cout << (int)connected_bus->read_mem(I + 1) << std::endl;
-	std::cout << (int)connected_bus->read_mem(I + 2)<< std::endl;
-	std::cout << "load from mem \n";
-	
+
 	
 }
 

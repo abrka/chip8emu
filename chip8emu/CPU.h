@@ -21,8 +21,8 @@ struct CPU {
 	uint8_t stack_ptr{};
 	//general purpose registers
 	std::array<uint8_t, 16> V{};
-	uint8_t delay_timer{};
-	uint8_t sound_timer{};
+	uint8_t delay_timer{255};
+	uint8_t sound_timer{255};
 
 	CPU(Bus* _connected_bus);
 

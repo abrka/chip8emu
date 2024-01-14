@@ -1,47 +1,37 @@
+/*
 #include <stdio.h>
 #include <SDL.h>
 #include <array>
 #include <iostream>
 #include "Bus.h"
 #include "CPU.h"
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
 
 // Define screen dimensions
 static int SCREEN_WIDTH = 800;
 static int SCREEN_HEIGHT = 600;
 
 
-struct rgba_color {
-	uint8_t r, g, b, a;
-};
-[[maybe_unused]] constexpr rgba_color neon = { 57, 255, 20, 255 };
-[[maybe_unused]] constexpr rgba_color black = { 0,0,0,255 };
-[[maybe_unused]] constexpr rgba_color white = { 255,255,255,255 };
-
-static rgba_color chip8_color_to_rgba(chip8_color col) {
-	if (col == true) {
-		return neon;
-	}
-	else {
-		return black;
-	}
-}
 void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer);
 
-template<typename T>
-static T map_range(T OldValue, T OldMin, T OldMax, T NewMax, T NewMin) {
-	return (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin;
-}
 
 
 int main(int argc, char* argv[])
 {
 	// Initialize SDL
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0)
 	{
 		printf("SDL could not be initialized!\n"
 			"SDL_Error: %s\n", SDL_GetError());
 		return 0;
 	}
+
+	// From 2.0.18: Enable native IME.
+#ifdef SDL_HINT_IME_SHOW_UI
+	SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+#endif
 
 #if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
 	// Disable compositor bypass
@@ -74,45 +64,33 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+	ImGui_ImplSDLRenderer2_Init(renderer);
+
+
 	SDL_RenderSetLogicalSize(renderer, chip8_screen_width, chip8_screen_height);
 
 	Bus* bus = new Bus{};
 	CPU cpu{ bus };
-	bool success = bus->load_bin_into_mem("data/Space Invaders [David Winter] (alt).ch8");
+	bool success = bus->load_bin_into_mem("data/Astro Dodge [Revival Studios, 2008].ch8");
 	if (not success) {
 		std::cout << "couldnt load file";
 		return -1;
 	}
 
-	//bus->write_rom(0, 0x00);
-	//bus->write_rom(1, 0xE0);
-
-	//bus->write_rom(2, 0x74);
-	//bus->write_rom(3, 2);
-
-	////cpu.V[0x3] = 15;
-	//bus->write_rom(4, 0x63);
-	//bus->write_rom(5, 15);
-
-
-	//bus->write_rom(6, 0xD4);
-	//bus->write_rom(7, 0x35);
-
-
-	//bus->write_rom(8, 0xA0);
-	//bus->write_rom(9, 0x00);
-
-	//bus->write_rom(10, 0x10);
-	//bus->write_rom(11, 0x00);
-
-
-
-	//
-	//bus->write_ram(0x0, 0xF0);
-	//bus->write_ram(0x1, 0x10);
-	//bus->write_ram(0x2, 0x20);
-	//bus->write_ram(0x3, 0x40);
-	//bus->write_ram(0x4, 0x40);
+	bool show_demo_window = true;
 
 	// Event loop exit flag
 	bool quit = false;
@@ -122,6 +100,7 @@ int main(int argc, char* argv[])
 		SDL_Event e;
 		while (SDL_PollEvent(&e) != 0)
 		{
+			ImGui_ImplSDL2_ProcessEvent(&e);
 			//User requests quitf
 			if (e.type == SDL_QUIT)
 			{
@@ -137,19 +116,44 @@ int main(int argc, char* argv[])
 		}
 
 
+		// Start the Dear ImGui frame
+		ImGui_ImplSDLRenderer2_NewFrame();
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
+
 		cpu.advance();
 
+		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+		if (true)
+			ImGui::ShowDemoWindow(&show_demo_window);
+
+
+		
+
+		
+
+		DrawChip8Pixels(bus, renderer);
+
+		SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+
+		ImGui::Render();
+
 		// Initialize renderer color white for the background
-		SDL_SetRenderDrawColor(renderer, neon.r, neon.g, neon.b, neon.a);
+		//SDL_SetRenderDrawColor(renderer, neon.r, neon.g, neon.b, neon.a);
 
 		// Clear screen
 		SDL_RenderClear(renderer);
 
-		DrawChip8Pixels(bus, renderer);
+
 
 		// Update screen
 		SDL_RenderPresent(renderer);
 	}
+
+	// Cleanup
+	ImGui_ImplSDLRenderer2_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
 
 	// Destroy renderer
 	SDL_DestroyRenderer(renderer);
@@ -185,3 +189,4 @@ void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
 		}
 	}
 }
+*/

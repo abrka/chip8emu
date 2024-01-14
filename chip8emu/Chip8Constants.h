@@ -11,12 +11,29 @@ constexpr int chip8_screen_width = 64;
 constexpr int chip8_screen_height = 32;
 
 
+
 constexpr uint8_t bytes_read_per_opcode{ 2 };
 constexpr uint8_t sprite_width{ 8 };
 
 using chip8_color = bool;
 constexpr bool chip8_color_lit = true;
 constexpr bool chip8_color_unlit = false;
+
+struct rgba_color {
+	uint8_t r, g, b, a;
+};
+[[maybe_unused]] constexpr rgba_color neon = { 57, 255, 20, 255 };
+[[maybe_unused]] constexpr rgba_color black = { 0,0,0,255 };
+[[maybe_unused]] constexpr rgba_color white = { 255,255,255,255 };
+
+static rgba_color chip8_color_to_rgba(chip8_color col) {
+	if (col == true) {
+		return neon;
+	}
+	else {
+		return black;
+	}
+}
 
 constexpr uint16_t font_data_starting_point = 0;
 constexpr uint8_t size_of_font = 5;
@@ -73,3 +90,4 @@ static std::optional<chip8_keycode> SDL_input_to_chip8_input(SDL_Keycode key) {
 		return {};
 	}
 };
+
