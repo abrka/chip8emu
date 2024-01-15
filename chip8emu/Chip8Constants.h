@@ -13,6 +13,8 @@ constexpr uint16_t program_starting_point{ 0x200 };
 constexpr uint32_t size_of_mem{ 4096 };
 constexpr uint8_t uninitialzed_value = 0xFF;
 
+constexpr int bytes_displayed_per_tab{ 1000 };
+
 constexpr int chip8_screen_width = 64;
 constexpr int chip8_screen_height = 32;
 

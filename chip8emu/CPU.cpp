@@ -159,27 +159,20 @@ void CPU::advance()
 
 }
 
-std::stringstream CPU::dump_core(uint32_t count) const
+std::stringstream CPU::dump_core(int start, int end) const
 {
+	assert(start >= 0);
+	assert(end < size_of_mem);
+
 	std::stringstream output{};
-	for (size_t i = 0; i < count; i++)
+	for (size_t i = start; i < end; i++)
 	{
 		output << std::format("0x{:02x}  ", connected_bus->memory[i]);
 	}
 	return output;
 }
 
-std::stringstream CPU::dump_core_exculding_reserve(uint32_t count) const
-{
-	std::stringstream output{};
-	
-	for (size_t i = program_starting_point; i < count; i++)
-	{
-		//output << "0x" << std::hex << (int)connected_bus->memory[i] << std::setw(4);
-		output << std::format("0x{:02x}  ", connected_bus->memory[i]);
-	}
-	return output;
-}
+
 
 std::stringstream CPU::dump_stack() const
 {

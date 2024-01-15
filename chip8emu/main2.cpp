@@ -1,4 +1,4 @@
-// Dear ImGui: standalone example application for SDL2 + SDL_Renderer
+﻿// Dear ImGui: standalone example application for SDL2 + SDL_Renderer
 // (SDL is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
 
 // Learn about Dear ImGui:
@@ -24,7 +24,7 @@
 #include <string>
 #include "tinyfiledialogs/tinyfiledialogs.h"
 #include <sstream>
-
+#include <format>
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
@@ -37,7 +37,7 @@ enum class EmulatorState {
 EmulatorState emulator_state = EmulatorState::Paused;
 
 static uint32_t cpu_cycles_executed_per_frame = 8;
-static bool exclude_reserved_area_when_showing_mem = true;
+constexpr uint32_t bytes_shown_per_tab_in_memory = 32;
 
 constexpr int window_starting_width = 1280;
 constexpr int window_starting_height = 720;
@@ -178,8 +178,7 @@ int main(int, char**)
 
 			ImGui::Text(filepath.c_str());
 
-			if (ImGui::Button("Load File")) {
-
+			if (ImGui::Button("[ ] Load File")) {
 				emulator_state = EmulatorState::Paused;
 				bus->reset();
 				cpu.reset();
@@ -207,13 +206,13 @@ int main(int, char**)
 				}
 
 			}
-
-			if (ImGui::Button("Pause")) {
+			ImGui::SameLine();
+			if (ImGui::Button("|| Pause")) {
 				emulator_state = EmulatorState::Paused;
 			}
 
-
-			if (ImGui::Button("Run")) {
+			ImGui::SameLine();
+			if (ImGui::Button("|> Run")) {
 				if (is_file_loaded) {
 					emulator_state = EmulatorState::Running;
 				}
@@ -223,7 +222,21 @@ int main(int, char**)
 
 			}
 
-			if (ImGui::Button("Step")) {
+			ImGui::SameLine();
+			if (ImGui::Button("O Restart")) {
+				if (is_file_loaded) {
+					bus->reset();
+					cpu.reset();
+					bus->load_bin_into_mem(filepath);
+				}
+				else {
+					error += "\n No File is Loaded";
+				}
+
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("-> Step")) {
 				if (is_file_loaded) {
 					cpu.advance();
 				}
@@ -231,7 +244,7 @@ int main(int, char**)
 					error = "file not loaded";
 				}
 			}
-			
+
 
 			ImGui::Text(error.c_str());
 
@@ -241,7 +254,6 @@ int main(int, char**)
 			ImGui::Begin("Settings");
 
 			ImGui::InputScalar("Cycles per frame", ImGuiDataType_U32, &cpu_cycles_executed_per_frame);
-			ImGui::Checkbox("Exclude reserve area when showing mem", &exclude_reserved_area_when_showing_mem);
 
 			ImGui::End();
 		}
@@ -275,12 +287,20 @@ int main(int, char**)
 			}
 
 			if (ImGui::CollapsingHeader("Mem")) {
-				if (exclude_reserved_area_when_showing_mem) {
-					ImGui::TextWrapped("%s", cpu.dump_core_exculding_reserve(20).str().c_str());
+
+				for (size_t i = 0; i < size_of_mem - bytes_displayed_per_tab; i += bytes_displayed_per_tab )
+				{
+					if (ImGui::BeginTabBar("Mem tab")) {
+						std::string tab_item_name = std::format("page {}", i / bytes_displayed_per_tab);
+						if (ImGui::BeginTabItem(tab_item_name.c_str())) {
+							ImGui::TextWrapped("%s", cpu.dump_core(i, i + bytes_displayed_per_tab).str().c_str());
+							ImGui::EndTabItem();
+						}
+						ImGui::EndTabBar();
+					}
 				}
-				else {
-					ImGui::TextWrapped("%s", cpu.dump_core(20).str().c_str());
-				}
+				
+
 			}
 
 			ImGui::End();

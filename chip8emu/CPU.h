@@ -29,8 +29,7 @@ struct CPU {
 	void reset();
 	void advance();
 
-	std::stringstream dump_core(uint32_t count ) const;
-	std::stringstream dump_core_exculding_reserve(uint32_t count ) const;
+	std::stringstream dump_core(int start, int end) const;
 	std::stringstream dump_stack() const;
 	/*std::stringstream dump_registers() const;
 	std::optional<std::stringstream> dump_current_instruction() const;
