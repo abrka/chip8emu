@@ -36,10 +36,15 @@ enum class EmulatorState {
 };
 EmulatorState emulator_state = EmulatorState::Paused;
 
-static uint32_t cpu_cycles_executed_per_frame = 2;
+static uint32_t cpu_cycles_executed_per_frame = 4;
 
 constexpr int window_starting_width = 1280;
 constexpr int window_starting_height = 720;
+static float screen_scale = 12;
+static float screen_offset_x = 30;
+static float screen_offset_y = 8;
+
+static bool is_debug_ui_shown = true;
 
 
 static void draw_chip8_pixels(Bus* bus, SDL_Renderer* renderer);
@@ -50,6 +55,8 @@ void start_running_cpu();
 void reset_cpu(Bus* bus, CPU& cpu, std::string& filepath);
 void draw_registers(CPU& cpu);
 void draw_source_code(Bus* bus, CPU& cpu);
+void draw_keyboard_input(Bus* bus);
+void draw_debug_ui(Bus* bus, CPU& cpu);
 static void Cleanup(SDL_Renderer* renderer, SDL_Window* window);
 
 // Main code
@@ -118,7 +125,7 @@ int main(int, char**)
 	//IM_ASSERT(font != nullptr);
 
 	// Our state
-	bool show_demo_window = true;
+	bool show_demo_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	Bus* bus = new Bus{};
@@ -142,8 +149,6 @@ int main(int, char**)
 			break;
 		}
 
-
-
 		// Poll and handle events (inputs, window resize, etc.)
 		// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 		// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -161,6 +166,9 @@ int main(int, char**)
 			}
 			else if (event.type == SDL_KEYDOWN) {
 				bus->pressed_key = SDL_input_to_chip8_input(event.key.keysym.sym);
+				if (event.key.keysym.sym == SDLK_d) {
+					is_debug_ui_shown = not is_debug_ui_shown;
+				}
 			}
 			else if (event.type == SDL_KEYUP) {
 				bus->pressed_key = {};
@@ -174,136 +182,21 @@ int main(int, char**)
 		ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
 
 
-		static std::string code_filepath{};
-
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 		if (show_demo_window) {
 			ImGui::ShowDemoWindow(&show_demo_window);
 		}
-		{
-			ImGui::Begin("Debugger");
 
-			static bool is_file_loaded{ false };
-			
-			static std::string error{};
-
-			ImGui::Text(code_filepath.c_str());
-
-			if (ImGui::Button("[ ] Load File")) {
-				emulator_state = EmulatorState::Paused;
-				bus->reset();
-				cpu.reset();
-
-				char const* selection = tinyfd_openFileDialog( // there is also a wchar_t version
-					"Select file", // title
-					NULL, // optional initial directory
-					2, // number of filter patterns
-					chip8_file_extensions, // char const * lFilterPatterns[2] = { "*.txt", "*.jpg" };
-					NULL, // optional filter description
-					0 // forbid multiple selections
-				);
-				if (selection != nullptr) {
-					code_filepath = selection;
-				}
-				is_file_loaded = bus->load_bin_into_mem(code_filepath);
-
-				if (not is_file_loaded) {
-					error = "Couldnt load file";
-
-				}
-				else {
-					error = "";
-
-				}
-
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("|| Pause")) {
-				pause_cpu();
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("|> Run")) {
-				if (is_file_loaded) {
-					start_running_cpu();
-				}
-				else {
-					error = "file not loaded";
-				}
-
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("O Restart")) {
-				if (is_file_loaded) {
-					reset_cpu(bus, cpu, code_filepath);
-				}
-				else {
-					error += "\n No File is Loaded";
-				}
-
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("-> Step")) {
-				if (is_file_loaded) {
-					step_cpu(cpu);
-				}
-				else {
-					error = "file not loaded";
-				}
-			}
-
-
-			ImGui::Text(error.c_str());
-			ImGui::End();
+		if (is_debug_ui_shown) {
+			draw_debug_ui(bus, cpu);
 		}
-		{
-			ImGui::Begin("Source Code");
-			draw_source_code(bus, cpu);
-			ImGui::End();
-		}
-		{
-			ImGui::Begin("Memory");
-			draw_memory_dump(cpu);
-			ImGui::End();
-		}
-
-		ImGui::Begin("Registers, Stack and Keyboard");
-		if (ImGui::BeginTabBar("Registers")) {
-
-			if (ImGui::BeginTabItem("Registers")) {
-				draw_registers(cpu);
-				ImGui::EndTabItem();
-			}
-
-			if (ImGui::BeginTabItem("Keyboard")) {
-				if (bus->pressed_key.has_value()) {
-					ImGui::Text("Pressed Key: %s", byte_to_hex_str(bus->pressed_key.value()).c_str());
-				}
-				else {
-					ImGui::Text("Pressed Key: %s", "None");
-				}
-				ImGui::EndTabItem();
-			}
-
-
-			if (ImGui::BeginTabItem("Stack")) {
-				ImGui::TextWrapped(cpu.dump_stack().str().c_str());
-				ImGui::EndTabItem();
-			}
-		
-			ImGui::EndTabBar();
-		}
-		ImGui::End();
-
 
 		// Rendering
 		SDL_RenderClear(renderer);
 
 		//our code
 	//	SDL_RenderSetLogicalSize(renderer, chip8_screen_width, chip8_screen_height);
-		SDL_RenderSetScale(renderer, screen_scale , screen_scale);
+		SDL_RenderSetScale(renderer, screen_scale, screen_scale);
 		draw_chip8_pixels(bus, renderer);
 
 		//imgui code
@@ -311,7 +204,7 @@ int main(int, char**)
 		int win_width{};
 		int win_height{};
 		SDL_GetWindowSize(window, &win_width, &win_height);
-		SDL_RenderSetLogicalSize(renderer, win_width, win_height);
+		//	SDL_RenderSetLogicalSize(renderer, win_width, win_height);
 		SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
 		SDL_SetRenderDrawColor(renderer, neon.r, neon.g, neon.b, 0);
 		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
@@ -322,6 +215,149 @@ int main(int, char**)
 	Cleanup(renderer, window);
 
 	return 0;
+}
+
+void draw_debug_ui(Bus* bus, CPU& cpu)
+{
+
+	static std::string code_filepath{};
+	{
+		ImGui::Begin("Debugger");
+
+		static bool is_file_loaded{ false };
+
+		static std::string error{};
+
+		ImGui::Text(code_filepath.c_str());
+
+		if (ImGui::Button("[ ] Load File")) {
+			emulator_state = EmulatorState::Paused;
+			bus->reset();
+			cpu.reset();
+
+			char const* selection = tinyfd_openFileDialog( // there is also a wchar_t version
+				"Select file", // title
+				NULL, // optional initial directory
+				2, // number of filter patterns
+				chip8_file_extensions, // char const * lFilterPatterns[2] = { "*.txt", "*.jpg" };
+				NULL, // optional filter description
+				0 // forbid multiple selections
+			);
+			if (selection != nullptr) {
+				code_filepath = selection;
+			}
+			is_file_loaded = bus->load_bin_into_mem(code_filepath);
+
+			if (not is_file_loaded) {
+				error = "Couldnt load file";
+
+			}
+			else {
+				error = "";
+
+			}
+
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("|| Pause")) {
+			pause_cpu();
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("|> Run")) {
+			if (is_file_loaded) {
+				start_running_cpu();
+			}
+			else {
+				error = "file not loaded";
+			}
+
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("O Restart")) {
+			if (is_file_loaded) {
+				reset_cpu(bus, cpu, code_filepath);
+			}
+			else {
+				error += "\n No File is Loaded";
+			}
+
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("-> Step")) {
+			if (is_file_loaded) {
+				step_cpu(cpu);
+			}
+			else {
+				error = "file not loaded";
+			}
+		}
+
+
+		ImGui::Text(error.c_str());
+		ImGui::End();
+	}
+
+	{
+		ImGui::Begin("Source Code");
+		draw_source_code(bus, cpu);
+		ImGui::End();
+	}
+	{
+		ImGui::Begin("Memory");
+		draw_memory_dump(cpu);
+		ImGui::End();
+	}
+	{
+		ImGui::Begin("Registers, Stack and Keyboard");
+		if (ImGui::BeginTabBar("Registers")) {
+
+			if (ImGui::BeginTabItem("Registers")) {
+				draw_registers(cpu);
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Keyboard")) {
+				draw_keyboard_input(bus);
+				ImGui::EndTabItem();
+			}
+
+
+			if (ImGui::BeginTabItem("Stack")) {
+				ImGui::TextWrapped(cpu.dump_stack().str().c_str());
+				ImGui::EndTabItem();
+			}
+
+			ImGui::EndTabBar();
+		}
+		ImGui::End();
+	}
+	{
+		ImGui::Begin("Prev Instruction");
+		std::string prev_instructions = word_to_hex_str(cpu.previous_executed_instruction);	
+		ImGui::Text(prev_instructions.c_str());
+		ImGui::End();
+	}
+	{
+		ImGui::Begin("Settings");
+		ImGui::DragScalar("Cycles per frame", ImGuiDataType_U32, &cpu_cycles_executed_per_frame);
+		ImGui::DragFloat("Screen Scale", &screen_scale, 0.2f);
+		ImGui::DragFloat("Screen Offset X", &screen_offset_x, 0.2f);
+		ImGui::DragFloat("Screen Offset Y", &screen_offset_y, 0.2f);
+		ImGui::End();
+	}
+}
+
+void draw_keyboard_input(Bus* bus)
+{
+	if (bus->pressed_key.has_value()) {
+		ImGui::Text("Pressed Key: %s", byte_to_hex_str(bus->pressed_key.value()).c_str());
+	}
+	else {
+		ImGui::Text("Pressed Key: %s", "None");
+	}
 }
 
 void draw_source_code(Bus* bus, CPU& cpu)

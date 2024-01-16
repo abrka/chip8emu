@@ -38,6 +38,7 @@ void CPU::reset()
 void CPU::advance()
 {
 
+
 	if (delay_timer != 0) {
 		delay_timer--;
 	}
@@ -151,10 +152,11 @@ void CPU::advance()
 		SET_VX_TO_DELAY_TIMER(opcode_first_byte, opcode_second_byte);
 	}
 	else {
-		uint16_t full_opcode = TwoByteToOneWord(opcode_second_byte, opcode_first_byte);
+		uint16_t full_opcode = two_bytes_to_one_word(opcode_second_byte, opcode_first_byte);
 		std::cout << "opcode: " << std::hex << full_opcode << std::endl;
 		assert(false && "opcode not supported");
 	}
+	previous_executed_instruction = two_bytes_to_one_word(opcode_second_byte, opcode_first_byte);
 	pc += bytes_read_per_opcode;
 
 }
@@ -635,7 +637,7 @@ void CPU::CALL_SUBROUTINE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 
 	uint8_t n = lower_nibble(opcode_first_byte);
 	uint8_t nn = opcode_second_byte;
-	uint16_t nnn = TwoByteToOneWord(nn, n);
+	uint16_t nnn = two_bytes_to_one_word(nn, n);
 	pc = nnn - bytes_read_per_opcode; // bytes per opcode needs to be subtracted since it will be added in the execute function
 
 }

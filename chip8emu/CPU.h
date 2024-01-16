@@ -14,7 +14,7 @@
 struct CPU {
 
 
-	Bus* connected_bus;
+	Bus* connected_bus = nullptr;
 
 	uint16_t pc{program_starting_point};
 	uint16_t I{};
@@ -24,6 +24,8 @@ struct CPU {
 	uint8_t delay_timer{};
 	uint8_t sound_timer{};
 
+	uint16_t previous_executed_instruction{};
+
 	CPU(Bus* _connected_bus);
 
 	void reset();
@@ -31,9 +33,6 @@ struct CPU {
 
 	std::stringstream dump_core(int start, int end) const;
 	std::stringstream dump_stack() const;
-	/*std::stringstream dump_registers() const;
-	std::optional<std::stringstream> dump_current_instruction() const;
-	std::stringstream dump_source(std::optional<uint16_t> size) const;*/
 
 	void DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
 	void JUMP(uint8_t opcode_first_byte, uint8_t opcode_second_byte);
