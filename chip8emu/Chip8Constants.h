@@ -12,6 +12,7 @@ static char const* chip8_file_extensions[2] = { "*.ch8", "*.c8" };
 constexpr uint16_t program_starting_point{ 0x200 };
 constexpr uint32_t size_of_mem{ 4096 };
 constexpr uint8_t uninitialzed_value = 0xFF;
+constexpr uint16_t stack_uninitialzed_value = 0xFFFF;
 
 constexpr int bytes_displayed_per_tab{ 1000 };
 

@@ -36,14 +36,18 @@ enum class EmulatorState {
 };
 EmulatorState emulator_state = EmulatorState::Paused;
 
-static uint32_t cpu_cycles_executed_per_frame = 8;
-constexpr uint32_t bytes_shown_per_tab_in_memory = 32;
+static uint32_t cpu_cycles_executed_per_frame = 2;
 
 constexpr int window_starting_width = 1280;
 constexpr int window_starting_height = 720;
 
 
-static void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer);
+static void draw_chip8_pixels(Bus* bus, SDL_Renderer* renderer);
+void draw_memory_dump(CPU& cpu);
+void step_cpu(CPU& cpu);
+void pause_cpu();
+void start_running_cpu();
+void reset_cpu(Bus* bus, CPU& cpu, std::string& filepath);
 static void Cleanup(SDL_Renderer* renderer, SDL_Window* window);
 
 // Main code
@@ -85,6 +89,7 @@ int main(int, char**)
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -164,7 +169,9 @@ int main(int, char**)
 		ImGui_ImplSDLRenderer2_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
+		ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
 
+	
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 		if (show_demo_window) {
 			ImGui::ShowDemoWindow(&show_demo_window);
@@ -208,13 +215,13 @@ int main(int, char**)
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("|| Pause")) {
-				emulator_state = EmulatorState::Paused;
+				pause_cpu();
 			}
 
 			ImGui::SameLine();
 			if (ImGui::Button("|> Run")) {
 				if (is_file_loaded) {
-					emulator_state = EmulatorState::Running;
+					start_running_cpu();
 				}
 				else {
 					error = "file not loaded";
@@ -225,9 +232,7 @@ int main(int, char**)
 			ImGui::SameLine();
 			if (ImGui::Button("O Restart")) {
 				if (is_file_loaded) {
-					bus->reset();
-					cpu.reset();
-					bus->load_bin_into_mem(filepath);
+					reset_cpu(bus, cpu, filepath);
 				}
 				else {
 					error += "\n No File is Loaded";
@@ -238,7 +243,7 @@ int main(int, char**)
 			ImGui::SameLine();
 			if (ImGui::Button("-> Step")) {
 				if (is_file_loaded) {
-					cpu.advance();
+					step_cpu(cpu);
 				}
 				else {
 					error = "file not loaded";
@@ -250,19 +255,17 @@ int main(int, char**)
 
 			ImGui::End();
 		}
+
 		{
-			ImGui::Begin("Settings");
-
-			ImGui::InputScalar("Cycles per frame", ImGuiDataType_U32, &cpu_cycles_executed_per_frame);
-
+			ImGui::Begin("Memory");
+			draw_memory_dump(cpu);
 			ImGui::End();
 		}
 
-		{
-			ImGui::Begin("Memory and Registers");
+		ImGui::Begin("Registers, Stack and Keyboard");
+		if (ImGui::BeginTabBar("Registers")) {
 
-
-			if (ImGui::CollapsingHeader("Registers")) {
+			if (ImGui::BeginTabItem("Registers")) {
 				ImGui::Text("PC: %s", byte_to_hex_str(cpu.pc).c_str());
 				ImGui::Text("I: %s", byte_to_hex_str(cpu.I).c_str());
 				ImGui::Text("Stack Ptr: %s", byte_to_hex_str(cpu.stack_ptr).c_str());
@@ -272,39 +275,29 @@ int main(int, char**)
 				{
 					ImGui::Text("V[%s]: %s", byte_to_hex_str(i).c_str(), byte_to_hex_str(cpu.V[i]).c_str());
 				}
+				ImGui::EndTabItem();
 			}
-			if (ImGui::CollapsingHeader("Keyboard")) {
+
+			if (ImGui::BeginTabItem("Keyboard")) {
 				if (bus->pressed_key.has_value()) {
 					ImGui::Text("Pressed Key: %s", byte_to_hex_str(bus->pressed_key.value()).c_str());
 				}
 				else {
 					ImGui::Text("Pressed Key: %s", "None");
 				}
+				ImGui::EndTabItem();
 			}
 
-			if (ImGui::CollapsingHeader("Stack")) {
+
+			if (ImGui::BeginTabItem("Stack")) {
 				ImGui::TextWrapped(cpu.dump_stack().str().c_str());
+				ImGui::EndTabItem();
 			}
-
-			if (ImGui::CollapsingHeader("Mem")) {
-
-				for (size_t i = 0; i < size_of_mem - bytes_displayed_per_tab; i += bytes_displayed_per_tab )
-				{
-					if (ImGui::BeginTabBar("Mem tab")) {
-						std::string tab_item_name = std::format("page {}", i / bytes_displayed_per_tab);
-						if (ImGui::BeginTabItem(tab_item_name.c_str())) {
-							ImGui::TextWrapped("%s", cpu.dump_core(i, i + bytes_displayed_per_tab).str().c_str());
-							ImGui::EndTabItem();
-						}
-						ImGui::EndTabBar();
-					}
-				}
-				
-
-			}
-
-			ImGui::End();
+		
+			ImGui::EndTabBar();
 		}
+		ImGui::End();
+
 
 		// Rendering
 		SDL_RenderClear(renderer);
@@ -312,7 +305,7 @@ int main(int, char**)
 		//our code
 		SDL_RenderSetLogicalSize(renderer, chip8_screen_width, chip8_screen_height);
 
-		DrawChip8Pixels(bus, renderer);
+		draw_chip8_pixels(bus, renderer);
 
 		//imgui code
 		ImGui::Render();
@@ -321,7 +314,7 @@ int main(int, char**)
 		SDL_GetWindowSize(window, &win_width, &win_height);
 		SDL_RenderSetLogicalSize(renderer, win_width, win_height);
 		SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-		SDL_SetRenderDrawColor(renderer, neon.r, neon.g, neon.b, neon.a);
+		SDL_SetRenderDrawColor(renderer, neon.r, neon.g, neon.b, 0);
 		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
 		SDL_RenderPresent(renderer);
 	}
@@ -332,9 +325,51 @@ int main(int, char**)
 	return 0;
 }
 
+void reset_cpu(Bus* bus, CPU& cpu, std::string& filepath)
+{
+	bus->reset();
+	cpu.reset();
+	bus->load_bin_into_mem(filepath);
+}
+
+void start_running_cpu()
+{
+	emulator_state = EmulatorState::Running;
+}
+
+void pause_cpu()
+{
+	emulator_state = EmulatorState::Paused;
+}
+
+void step_cpu(CPU& cpu)
+{
+	cpu.advance();
+}
+
+void draw_memory_dump(CPU& cpu)
+{
 
 
-void DrawChip8Pixels(Bus* bus, SDL_Renderer* renderer)
+	for (size_t i = 0; i < size_of_mem - bytes_displayed_per_tab; i += bytes_displayed_per_tab)
+	{
+		if (ImGui::BeginTabBar("Mem tab")) {
+			std::string tab_item_name = std::format("page {}", i / bytes_displayed_per_tab);
+			if (ImGui::BeginTabItem(tab_item_name.c_str())) {
+				ImGui::TextWrapped("%s", cpu.dump_core(i, i + bytes_displayed_per_tab).str().c_str());
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
+		}
+	}
+
+
+
+}
+
+
+
+void draw_chip8_pixels(Bus* bus, SDL_Renderer* renderer)
 {
 
 	for (size_t y = 0; y < chip8_screen_height; y++)

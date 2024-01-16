@@ -179,7 +179,7 @@ std::stringstream CPU::dump_stack() const
 	std::stringstream output{};
 	for (auto& byte : connected_bus->stack)
 	{
-		output << "0x" << std::hex << (int)byte << std::setw(4);
+		output << std::format("0x{:04x}  ", byte);
 	}
 	return output;
 }

@@ -16,8 +16,6 @@ struct Bus {
 	std::array<std::array<chip8_color, chip8_screen_width>, chip8_screen_height> pixels{};
 	std::optional<chip8_keycode> pressed_key{};
 
-	//only set when code is loaded from file
-	std::optional<uint16_t> program_code_size = {};
 
 	Bus() {
 		reset();
@@ -41,7 +39,7 @@ struct Bus {
 
 	void reset() {
 		memory.fill(uninitialzed_value);
-		stack.fill(uninitialzed_value);
+		stack.fill(stack_uninitialzed_value);
 		pressed_key = {};
 		for (auto& column : pixels)
 		{
@@ -83,7 +81,7 @@ struct Bus {
 			memory[i] = ch;
 			i++;
 		}
-		program_code_size = i;
+	
 		return true;
 	}
 };
