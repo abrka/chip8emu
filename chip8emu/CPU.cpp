@@ -186,61 +186,6 @@ std::stringstream CPU::dump_stack() const
 	return output;
 }
 
-//std::stringstream CPU::dump_registers() const
-//{
-//	std::stringstream output{};
-//	for (size_t i = 0; i < V.size(); i++)
-//	{
-//		output << "V[" << std::hex << i << "]" << " value:" << V[i] << "\n";
-//	}
-//
-//	output << "program counter " << "0x" << std::hex << (int)pc << "\n";
-//	return output;
-//}
-//
-//std::optional<std::stringstream> CPU::dump_current_instruction() const
-//{
-//
-//	/*uint8_t instruction = connected_bus->rom.at(pc);
-//
-//	if (not operation_lookup_table.contains(instruction)) {
-//		return {};
-//	}
-//
-//	std::string insturction_name = operation_lookup_table.at(instruction).operation_name;*/
-//
-//	std::stringstream output{};
-//	//output << "program counter: " << "0x" << std::hex << (int)pc << "\n";
-//	//output << "instruction: " << "0x" << std::hex << (int)instruction << " (" << insturction_name << ")" << "\n";
-//
-//	return output;
-//}
-//
-//std::stringstream CPU::dump_source(std::optional<uint16_t> size = {}) const
-//{
-//	/*std::stringstream output{};
-//	for (int i =0; auto& byte : connected_bus->rom)
-//	{
-//		if (not( i < size.value_or(infinity))) {
-//			return output;
-//		}
-//		output << std::setw(4) << "0x" << std::hex << (int)byte;
-//		i++;
-//	}
-//	return output;*/
-//
-//	if (size.has_value()) {
-//		assert(size <= connected_bus->memory.size() && "size of data provided in dump source is bigger than the size of rom");
-//	}
-//
-//	std::stringstream output{};
-//	for (int i = 0; i < size.value_or(connected_bus->memory.size()); i++)
-//	{
-//		uint8_t byte = connected_bus->read_mem(i);
-//		output << std::setw(4) << "0x" << std::hex << (int)byte;
-//	}
-//	return output;
-//}
 
 void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
@@ -265,7 +210,7 @@ void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 		{
 			uint8_t pixel_x_coord = (x + x_offset) % chip8_screen_width;
 			chip8_color prev_color = connected_bus->pixels[pixel_y_coord][pixel_x_coord];
-			chip8_color result_color = prev_color ^ row_pixels[x];
+			chip8_color result_color =  row_pixels[x] ^ prev_color;
 			connected_bus->pixels[pixel_y_coord][pixel_x_coord] = result_color;
 
 			if (prev_color == chip8_color_lit and result_color == chip8_color_unlit) {
@@ -326,6 +271,7 @@ void CPU::ADD_TWO_REG(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t& VX = V[lower_nibble(opcode_first_byte)];
 	uint8_t VY = V[higher_nibble(opcode_second_byte)];
 	VX = VX + VY;
+
 	if (VX < VY) {
 		V[0xF] = 1;
 	}

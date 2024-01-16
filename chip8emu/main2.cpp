@@ -40,9 +40,9 @@ static uint32_t cpu_cycles_executed_per_frame = 4;
 
 constexpr int window_starting_width = 1280;
 constexpr int window_starting_height = 720;
-static float screen_scale = 12;
-static float screen_offset_x = 30;
-static float screen_offset_y = 8;
+static float screen_scale = 9.6;
+static float screen_offset_x = 32;
+static float screen_offset_y = 12;
 
 static bool is_debug_ui_shown = true;
 
@@ -76,7 +76,7 @@ int main(int, char**)
 
 	// Create window with SDL_Renderer graphics context
 	SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-	SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+SDL_Renderer example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_starting_width, window_starting_height, window_flags);
+	SDL_Window* window = SDL_CreateWindow("Chip 8 Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_starting_width, window_starting_height, window_flags);
 	if (window == nullptr)
 	{
 		printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
