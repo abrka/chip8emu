@@ -16,6 +16,7 @@ struct Bus {
 	std::array<std::array<chip8_color, chip8_screen_width>, chip8_screen_height> pixels{};
 	std::optional<chip8_keycode> pressed_key{};
 
+	int program_code_size{};
 
 	Bus() {
 		reset();
@@ -77,9 +78,12 @@ struct Bus {
 		load_fonts_into_mem();
 		uint8_t ch{};
 		int i = program_starting_point;
+		program_code_size = 0;
+
 		while (file >> std::noskipws >> ch) {
 			memory[i] = ch;
 			i++;
+			program_code_size++;
 		}
 	
 		return true;

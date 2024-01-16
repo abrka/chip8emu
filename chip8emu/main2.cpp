@@ -48,6 +48,8 @@ void step_cpu(CPU& cpu);
 void pause_cpu();
 void start_running_cpu();
 void reset_cpu(Bus* bus, CPU& cpu, std::string& filepath);
+void draw_registers(CPU& cpu);
+void draw_source_code(Bus* bus, CPU& cpu);
 static void Cleanup(SDL_Renderer* renderer, SDL_Window* window);
 
 // Main code
@@ -171,7 +173,9 @@ int main(int, char**)
 		ImGui::NewFrame();
 		ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
 
-	
+
+		static std::string code_filepath{};
+
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 		if (show_demo_window) {
 			ImGui::ShowDemoWindow(&show_demo_window);
@@ -180,10 +184,10 @@ int main(int, char**)
 			ImGui::Begin("Debugger");
 
 			static bool is_file_loaded{ false };
-			static std::string filepath{};
+			
 			static std::string error{};
 
-			ImGui::Text(filepath.c_str());
+			ImGui::Text(code_filepath.c_str());
 
 			if (ImGui::Button("[ ] Load File")) {
 				emulator_state = EmulatorState::Paused;
@@ -199,9 +203,9 @@ int main(int, char**)
 					0 // forbid multiple selections
 				);
 				if (selection != nullptr) {
-					filepath = selection;
+					code_filepath = selection;
 				}
-				is_file_loaded = bus->load_bin_into_mem(filepath);
+				is_file_loaded = bus->load_bin_into_mem(code_filepath);
 
 				if (not is_file_loaded) {
 					error = "Couldnt load file";
@@ -232,7 +236,7 @@ int main(int, char**)
 			ImGui::SameLine();
 			if (ImGui::Button("O Restart")) {
 				if (is_file_loaded) {
-					reset_cpu(bus, cpu, filepath);
+					reset_cpu(bus, cpu, code_filepath);
 				}
 				else {
 					error += "\n No File is Loaded";
@@ -252,10 +256,13 @@ int main(int, char**)
 
 
 			ImGui::Text(error.c_str());
-
 			ImGui::End();
 		}
-
+		{
+			ImGui::Begin("Source Code");
+			draw_source_code(bus, cpu);
+			ImGui::End();
+		}
 		{
 			ImGui::Begin("Memory");
 			draw_memory_dump(cpu);
@@ -266,15 +273,7 @@ int main(int, char**)
 		if (ImGui::BeginTabBar("Registers")) {
 
 			if (ImGui::BeginTabItem("Registers")) {
-				ImGui::Text("PC: %s", byte_to_hex_str(cpu.pc).c_str());
-				ImGui::Text("I: %s", byte_to_hex_str(cpu.I).c_str());
-				ImGui::Text("Stack Ptr: %s", byte_to_hex_str(cpu.stack_ptr).c_str());
-				ImGui::Text("Delay Timer: %s", byte_to_hex_str(cpu.delay_timer).c_str());
-				ImGui::Text("Sound Timer: %s", byte_to_hex_str(cpu.sound_timer).c_str());
-				for (size_t i = 0; i < cpu.V.size(); i++)
-				{
-					ImGui::Text("V[%s]: %s", byte_to_hex_str(i).c_str(), byte_to_hex_str(cpu.V[i]).c_str());
-				}
+				draw_registers(cpu);
 				ImGui::EndTabItem();
 			}
 
@@ -303,8 +302,8 @@ int main(int, char**)
 		SDL_RenderClear(renderer);
 
 		//our code
-		SDL_RenderSetLogicalSize(renderer, chip8_screen_width, chip8_screen_height);
-
+	//	SDL_RenderSetLogicalSize(renderer, chip8_screen_width, chip8_screen_height);
+		SDL_RenderSetScale(renderer, screen_scale , screen_scale);
 		draw_chip8_pixels(bus, renderer);
 
 		//imgui code
@@ -323,6 +322,34 @@ int main(int, char**)
 	Cleanup(renderer, window);
 
 	return 0;
+}
+
+void draw_source_code(Bus* bus, CPU& cpu)
+{
+	std::string source_code{};
+	for (int i = program_starting_point; i < program_starting_point + bus->program_code_size; i++) {
+		uint8_t byte = bus->read_mem(i);
+		if (i == cpu.pc) {
+			source_code += std::format("0x{:02x}<- ", byte);
+		}
+		else {
+			source_code += std::format("{} ", byte_to_hex_str(byte));
+		}
+	}
+	ImGui::TextWrapped(source_code.c_str());
+}
+
+void draw_registers(CPU& cpu)
+{
+	ImGui::Text("PC: %s", word_to_hex_str(cpu.pc).c_str());
+	ImGui::Text("I: %s", word_to_hex_str(cpu.I).c_str());
+	ImGui::Text("Stack Ptr: %s", byte_to_hex_str(cpu.stack_ptr).c_str());
+	ImGui::Text("Delay Timer: %s", byte_to_hex_str(cpu.delay_timer).c_str());
+	ImGui::Text("Sound Timer: %s", byte_to_hex_str(cpu.sound_timer).c_str());
+	for (size_t i = 0; i < cpu.V.size(); i++)
+	{
+		ImGui::Text("V[%s]: %s", byte_to_hex_str_ns(i).c_str(), byte_to_hex_str(cpu.V[i]).c_str());
+	}
 }
 
 void reset_cpu(Bus* bus, CPU& cpu, std::string& filepath)
@@ -377,10 +404,10 @@ void draw_chip8_pixels(Bus* bus, SDL_Renderer* renderer)
 		for (size_t x = 0; x < chip8_screen_width; x++)
 		{
 			SDL_Rect rect{};
-			rect.x = x;
-			rect.y = y;
-			rect.w = 10;
-			rect.h = 10;
+			rect.x = x + screen_offset_x;
+			rect.y = y + screen_offset_y;
+			rect.w = 1;
+			rect.h = 1;
 			chip8_color chip8_col = bus->pixels[y][x];
 			rgba_color rect_col = chip8_color_to_rgba(chip8_col);
 
