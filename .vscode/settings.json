@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.cmake": "cmake",
+        "string": "cpp",
+        "sstream": "cpp"
+    }
+}
