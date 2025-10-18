@@ -42,7 +42,7 @@ constexpr int window_starting_width = 1280;
 constexpr int window_starting_height = 720;
 static float screen_scale = 9.6;
 static float screen_offset_x = 32;
-static float screen_offset_y = 12;
+static float screen_offset_y = 10.6;
 
 static bool is_debug_ui_shown = true;
 
@@ -239,7 +239,7 @@ void draw_debug_ui(Bus* bus, CPU& cpu)
 				"Select file", // title
 				NULL, // optional initial directory
 				2, // number of filter patterns
-				chip8_file_extensions, // char const * lFilterPatterns[2] = { "*.txt", "*.jpg" };
+				NULL, // char const * lFilterPatterns[2] = { "*.txt", "*.jpg" };
 				NULL, // optional filter description
 				0 // forbid multiple selections
 			);
@@ -336,8 +336,11 @@ void draw_debug_ui(Bus* bus, CPU& cpu)
 	}
 	{
 		ImGui::Begin("Prev Instruction");
-		std::string prev_instructions = word_to_hex_str(cpu.previous_executed_instruction);	
-		ImGui::Text(prev_instructions.c_str());
+		for (uint16_t instr : cpu.backtrace) {
+			std::string prev_instructions = word_to_hex_str(instr);
+			ImGui::Text(prev_instructions.c_str());
+		}
+		
 		ImGui::End();
 	}
 	{
@@ -362,17 +365,22 @@ void draw_keyboard_input(Bus* bus)
 
 void draw_source_code(Bus* bus, CPU& cpu)
 {
+	
 	std::string source_code{};
-	for (int i = program_starting_point; i < program_starting_point + bus->program_code_size; i++) {
-		uint8_t byte = bus->read_mem(i);
-		if (i == cpu.pc) {
+
+	for (int i = 0; i < bus->program_code_size; i++) { 
+		uint8_t byte = bus->read_mem(i + program_starting_point);
+		if (i + program_starting_point == cpu.pc) {
 			source_code += std::format("0x{:02x}<- ", byte);
 		}
 		else {
 			source_code += std::format("{} ", byte_to_hex_str(byte));
 		}
 	}
+	
 	ImGui::TextWrapped(source_code.c_str());
+
+
 }
 
 void draw_registers(CPU& cpu)

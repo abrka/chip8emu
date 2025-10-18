@@ -77,12 +77,11 @@ struct Bus {
 		reset();
 		load_fonts_into_mem();
 		uint8_t ch{};
-		int i = program_starting_point;
+		
 		program_code_size = 0;
 
-		while (file >> std::noskipws >> ch) {
+		for (int i = program_starting_point; file >> std::noskipws >> ch; i++) {
 			memory[i] = ch;
-			i++;
 			program_code_size++;
 		}
 	

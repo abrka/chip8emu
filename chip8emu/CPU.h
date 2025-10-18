@@ -8,15 +8,14 @@
 #include <optional>
 #include <array>
 #include "NumberSystemUtils.h"
-
+#include <list>
 
 
 struct CPU {
 
-
 	Bus* connected_bus = nullptr;
 
-	uint16_t pc{program_starting_point};
+	uint16_t pc{ program_starting_point };
 	uint16_t I{};
 	uint8_t stack_ptr{};
 	//general purpose registers
@@ -24,7 +23,7 @@ struct CPU {
 	uint8_t delay_timer{};
 	uint8_t sound_timer{};
 
-	uint16_t previous_executed_instruction{};
+	std::list<uint16_t> backtrace{};
 
 	CPU(Bus* _connected_bus);
 

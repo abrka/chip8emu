@@ -7,8 +7,9 @@
 #include <sstream>
 #include <format>
 
-static char const* chip8_file_extensions[2] = { "*.ch8", "*.c8" };
+static char const* chip8_file_extensions[] = { "*.ch8", "*.c8", "*.bin"};
 
+constexpr int max_backtrace_size{ 10 };
 
 constexpr uint16_t program_starting_point{ 0x200 };
 constexpr uint32_t size_of_mem{ 4096 };
@@ -16,7 +17,7 @@ constexpr uint8_t uninitialzed_value = 0xCC;
 constexpr uint16_t stack_uninitialzed_value = 0xCCCC;
 
 constexpr int bytes_displayed_per_tab{ 1000 };
-
+constexpr int bytes_displayed_per_row_in_source_code{ 8 };
 
 
 constexpr int chip8_screen_width = 64;

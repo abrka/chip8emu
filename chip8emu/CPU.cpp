@@ -26,6 +26,7 @@ CPU::CPU(Bus* _connected_bus) : connected_bus{ _connected_bus }
 void CPU::reset()
 {
 	V.fill(0x0);
+	backtrace.clear();
 	pc = program_starting_point;
 	stack_ptr = 0;
 	I = 0;
@@ -156,7 +157,12 @@ void CPU::advance()
 		std::cout << "opcode: " << std::hex << full_opcode << std::endl;
 		assert(false && "opcode not supported");
 	}
-	previous_executed_instruction = two_bytes_to_one_word(opcode_second_byte, opcode_first_byte);
+
+	backtrace.push_front(two_bytes_to_one_word(opcode_second_byte, opcode_first_byte));
+
+	if (backtrace.size() > max_backtrace_size) {
+		backtrace.pop_back();
+	}
 	pc += bytes_read_per_opcode;
 
 }
@@ -210,7 +216,7 @@ void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 		{
 			uint8_t pixel_x_coord = (x + x_offset) % chip8_screen_width;
 			chip8_color prev_color = connected_bus->pixels[pixel_y_coord][pixel_x_coord];
-			chip8_color result_color =  row_pixels[x] ^ prev_color;
+			chip8_color result_color = row_pixels[x] ^ prev_color;
 			connected_bus->pixels[pixel_y_coord][pixel_x_coord] = result_color;
 
 			if (prev_color == chip8_color_lit and result_color == chip8_color_unlit) {
@@ -484,7 +490,7 @@ void CPU::RANDOM_BYTE_AND_KK(uint8_t opcode_first_byte, uint8_t opcode_second_by
 
 void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 {
-	
+
 	uint8_t X = lower_nibble(opcode_first_byte);
 	uint8_t vX;
 	vX = V[X];
@@ -495,7 +501,7 @@ void CPU::STORE_BCD(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	connected_bus->memory[I + 2] = vX;
 
 	/*uint8_t VX = V[lower_nibble(opcode_first_byte)];
-	
+
 	uint8_t hundreds_digit = get_digit(VX, 2);
 	uint8_t tens_digit = get_digit(VX, 1);
 	uint8_t ones_digit = get_digit(VX, 0);
@@ -535,10 +541,10 @@ void CPU::LOAD_REG_FROM_MEM(uint8_t opcode_first_byte, uint8_t opcode_second_byt
 	for (uint8_t i = 0; i <= X; i++)
 	{
 		V[i] = connected_bus->read_mem(I + i);
-		
+
 	}
 
-	
+
 }
 
 void CPU::SET_I_TO_LOC_OF_FONT(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
