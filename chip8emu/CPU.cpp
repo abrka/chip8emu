@@ -206,6 +206,8 @@ void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 	uint8_t x_offset = V[x_offset_reg];
 	uint8_t y_offset = V[y_offset_reg];
 
+	V[0xF] = 0;
+
 	for (size_t y = 0; y < sprite_height; y++)
 	{
 		uint8_t pixel_y_coord = (y + y_offset) % chip8_screen_height;
@@ -219,12 +221,12 @@ void CPU::DISPLAY_SPRITE(uint8_t opcode_first_byte, uint8_t opcode_second_byte)
 			chip8_color result_color = row_pixels[x] ^ prev_color;
 			connected_bus->pixels[pixel_y_coord][pixel_x_coord] = result_color;
 
-			if (prev_color == chip8_color_lit and result_color == chip8_color_unlit) {
+			if (prev_color == chip8_color_lit && result_color == chip8_color_unlit) {
 				V[0xF] = 1;
 			}
-			else {
-				V[0xF] = 0;
-			}
+			//else {
+			//	V[0xF] = 0;
+			//}
 
 		}
 
