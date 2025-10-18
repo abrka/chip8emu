@@ -10,7 +10,7 @@ This is a complete chip8 emulator along with debugging support
 ## Building
 
 ```shell
-$ git clone https://github.com/abcdedafjkdmme/chip8emu.git
+$ git clone https://github.com/abrka/chip8emu.git
 $ mkdir build
 $ cd build
 $ cmake ..
@@ -30,4 +30,5 @@ Now run chip8emu executable
 
 ## Controls
 Use keypad for inputs
+
 
