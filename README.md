@@ -18,10 +18,16 @@ $ cmake --build .
 ```
 Now run chip8emu executable
 
-### For Visual Studio:
+### For Visual Studio
 - Open chip8emu_proj.sln in Visual Studio
 - Build and run chip8emu
 
+## How To Use
+- Click on the \[Load Program\] button
+- Load an example program from data/ folder
+- Click on \[Run Program\] button
+- Now the example program will start running
 
 ## Controls
 Use keypad for inputs
+
