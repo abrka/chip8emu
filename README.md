@@ -3,5 +3,25 @@
 ## Description
 This is a complete chip8 emulator along with debugging support
 
-## Keyboard Inputs
+## Requirements
+- Compiler that supports C++20
+- CMake
+
+## Building
+
+```shell
+$ git clone https://github.com/abcdedafjkdmme/chip8emu.git
+$ mkdir build
+$ cd build
+$ cmake ..
+$ cmake --build .
+```
+Now run chip8emu executable
+
+### For Visual Studio:
+- Open chip8emu_proj.sln in Visual Studio
+- Build and run chip8emu
+
+
+## Controls
 Use keypad for inputs
