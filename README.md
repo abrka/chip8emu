@@ -11,6 +11,7 @@ This is a complete chip8 emulator along with debugging support
 
 ```shell
 $ git clone https://github.com/abrka/chip8emu.git
+$ cd chip8emu
 $ mkdir build
 $ cd build
 $ cmake ..
