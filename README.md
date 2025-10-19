@@ -24,12 +24,13 @@ Now run chip8emu executable
 - Build and run chip8emu
 
 ## How To Use
+- Note that the first time this program is run, the ui layout will be messed up. Drag and dock windows wherever you like to create your own layout. Next time the program is run, this layout will be used
 - Click on the \[Load Program\] button
 - Load an example program from data/ folder
 - Click on \[Run Program\] button
 - Now the example program will start running
 
-## Controls
+### Controls
 Use keypad for inputs
 
 
